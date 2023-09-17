@@ -1,6 +1,6 @@
 # 🗃️ Neovim project manager plugin
 
-**Neovim project** manager maintains your recent project history and uses [Telescope](https://github.com/nvim-telescope/telescope.nvim) to select from autosaved sessions. It runs on top of the [Neovim Session Manager](https://github.com/Shatur/neovim-session-manager), which is needed to store all open tabs and buffers for each project.
+**Neovim project** plugin simplifies project management by maintaining project history and providing quick access to saved sessions via [Telescope](https://github.com/nvim-telescope/telescope.nvim). It runs on top of the [Neovim Session Manager](https://github.com/Shatur/neovim-session-manager), which is needed to store all open tabs and buffers for each project.
 
 - ✅ Start where you left off last time.
 - ✅ Switch from project to project in second.
@@ -11,12 +11,19 @@
 
 ![Neovim project manager plugin onedark theme](https://github.com/coffebar/neovim-project/assets/3100053/2bc9b472-071c-4975-97b0-545bd1390053)
 
-
 🙏 **Neovim project manager** plugin is heavily inspired by [project.vim](https://github.com/ahmedkhalf/project.nvim)
 
+## Usage
+
+1. Set patterns in the [configuration](#configuration) to discover your projects.
+2. Use [commands](#commands) to open your project. Or open nvim in the project directory. Both methods will create a session.
+3. Open files inside the project and work.
+4. The session will be saved before closing nvim or switching to another project.
+5. Open nvim in any non-project directory and the latest session will be loaded.
+   
 ## 📦 Installation
 
-Install the plugin with your preferred package manager:
+You can install the plugin using your preferred package manager.
 
 <details><summary><h3>Lazy.nvim</h3></summary>
 
@@ -122,6 +129,7 @@ Use `Ctrl+d` in Telescope to delete the project's session and remove it from the
 ## ⚡ Requirements
 
 - Neovim >= 0.8.0
+
 
 ## 🤝 Contributing
 
