@@ -130,6 +130,9 @@ Use `Ctrl+d` in Telescope to delete the project's session and remove it from the
 
 - Neovim >= 0.8.0
 
+## Demo video
+
+https://github.com/coffebar/neovim-project/assets/3100053/c83ae8ab-625e-4a44-88e1-7d7e61c4bad8
 
 ## 🤝 Contributing
 
