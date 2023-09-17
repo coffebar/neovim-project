@@ -4,7 +4,7 @@
 
 - ✅ Start where you left off last time.
 - ✅ Switch from project to project in second.
-- ✅ Project sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
+- ✅ Sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
 - ✅ Find all your projects by glob patterns defined in config.
 
 🙏 **Neovim project manager** plugin is heavily inspired by [project.vim](https://github.com/ahmedkhalf/project.nvim)
