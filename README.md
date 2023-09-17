@@ -2,12 +2,12 @@
 
 **Neovim project** manager maintains your recent project history and uses [Telescope](https://github.com/nvim-telescope/telescope.nvim) to select from autosaved sessions. It runs on top of the [Neovim Session Manager](https://github.com/Shatur/neovim-session-manager), which is needed to store all open tabs and buffers for each project.
 
-- Start where you left off last time.
-- Switch from project to project in seconds.
-- Project sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
-- Find projects by glob patterns defined in config.
+- ✅ Start where you left off last time.
+- ✅ Switch from project to project in second.
+- ✅ Project sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
+- ✅ Find all your projects by glob patterns defined in config.
 
-**Neovim project manager** plugin is heavily inspired by [project.vim](https://github.com/ahmedkhalf/project.nvim)
+🙏 **Neovim project manager** plugin is heavily inspired by [project.vim](https://github.com/ahmedkhalf/project.nvim)
 
 ## 📦 Installation
 
@@ -105,9 +105,9 @@ use {
 
 Plugin will add these commands:
 
-- `:Telescope neovim-project discover` - find a project based on `projects` patterns.
+- `:Telescope neovim-project discover` - find a project based on patterns.
 
-- `:Telescope neovim-project history` - select a project from you recent history.
+- `:Telescope neovim-project history` - select a project from your recent history.
 
 
 #### Telescope mappings
@@ -117,8 +117,6 @@ Use `Ctrl+d` in Telescope to delete the project's session and remove it from the
 ## ⚡ Requirements
 
 - Neovim >= 0.8.0
-- [Neovim Session Manager](https://github.com/Shatur/neovim-session-manager)
-- [Telescope](https://github.com/nvim-telescope/telescope.nvim)
 
 ## 🤝 Contributing
 
