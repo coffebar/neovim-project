@@ -15,7 +15,7 @@
 
 ## Usage
 
-1. Set patterns in the [configuration](#configuration) to discover your projects.
+1. Set patterns in the [configuration](#%EF%B8%8F-configuration) to discover your projects.
 2. Use [commands](#commands) to open your project. Or open nvim in the project directory. Both methods will create a session.
 3. Open files inside the project and work.
 4. The session will be saved before closing nvim or switching to another project.
