@@ -2,6 +2,7 @@ local M = {}
 
 local history = require("neovim-project.utils.history")
 local manager = require("session_manager")
+local utils = require("session_manager.utils")
 local path = require("neovim-project.utils.path")
 
 M.save_project_waiting = false
@@ -38,8 +39,21 @@ M.setup_autocmds = function()
   })
 end
 
+M.delete_session = function(dir)
+  if utils.is_session and dir == path.cwd() then
+    utils.is_session = false
+  end
+  local sessions = utils.get_sessions()
+  for idx, session in ipairs(sessions) do
+    if path.short_path(session.dir.filename) == dir then
+      local Path = require("plenary.path")
+      return Path:new(sessions[idx].filename):rm()
+    end
+  end
+end
+
 M.in_session = function()
-  return require("session_manager.utils").is_session
+  return utils.is_session
 end
 
 function M.switch_after_save_session(dir)

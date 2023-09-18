@@ -15,8 +15,6 @@ local path = require("neovim-project.utils.path")
 local history = require("neovim-project.utils.history")
 local project = require("neovim-project.project")
 
-local utils = require("session_manager.utils")
-
 ----------
 -- Actions
 ----------
@@ -80,17 +78,6 @@ local function change_working_directory(prompt_bufnr)
   end
 end
 
-local function delete_session(dir)
-  -- Delete a session from the session manager storage
-  local sessions = utils.get_sessions()
-  for idx, session in ipairs(sessions) do
-    if path.short_path(session.dir.filename) == dir then
-      local Path = require("plenary.path")
-      return Path:new(sessions[idx].filename):rm()
-    end
-  end
-end
-
 local function delete_project(prompt_bufnr)
   local selectedEntry = state.get_selected_entry()
   if selectedEntry == nil then
@@ -100,8 +87,8 @@ local function delete_project(prompt_bufnr)
   local choice = vim.fn.confirm("Delete '" .. selectedEntry.value .. "' from project list?", "&Yes\n&No", 2)
 
   if choice == 1 then
-    history.delete_project(selectedEntry)
-    delete_session(selectedEntry.value)
+    history.delete_project(selectedEntry.value)
+    project.delete_session(selectedEntry.value)
 
     local finder = create_finder(false)
     state.get_current_picker(prompt_bufnr):refresh(finder, {

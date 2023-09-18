@@ -51,14 +51,14 @@ function M.add_session_project(dir)
   table.insert(M.session_projects, dir)
 end
 
-function M.delete_project(project)
+function M.delete_project(dir)
   for k, v in pairs(M.recent_projects) do
-    if v == project.value then
+    if v == dir then
       M.recent_projects[k] = nil
     end
   end
   for k, v in pairs(M.session_projects) do
-    if v == project.value then
+    if v == dir then
       M.session_projects[k] = nil
     end
   end
