@@ -28,6 +28,7 @@ You can install the plugin using your preferred package manager.
 <details><summary><h3>Lazy.nvim</h3></summary>
 
 ```lua
+{ "nvim-telescope/telescope.nvim", tag = "0.1.0", dependencies = { "nvim-lua/plenary.nvim" } }
 {
   "coffebar/neovim-project",
   opts = {
@@ -37,16 +38,6 @@ You can install the plugin using your preferred package manager.
   dependencies = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" },
   priority = 100,
 },
-{
-  "Shatur/neovim-session-manager",
-  lazy = true,
-  dependencies = { "nvim-lua/plenary.nvim" }
-},
-{
-  "nvim-telescope/telescope.nvim",
-  tag = "0.1.0",
-  dependencies = { "nvim-lua/plenary.nvim" },
-}
 ```
 
 </details>
@@ -54,6 +45,7 @@ You can install the plugin using your preferred package manager.
 <details><summary><h3>packer.nvim</h3></summary>
 
 ```lua
+use { "nvim-telescope/telescope.nvim", tag = "0.1.0", requires = { "nvim-lua/plenary.nvim" } }
 use {
   "coffebar/neovim-project",
   config = function()
@@ -63,17 +55,6 @@ use {
     }
   end
   requires = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" }
-}
-
-use {
-  "Shatur/neovim-session-manager",
-  requires = { "nvim-lua/plenary.nvim" }
-}
-
-use {
-  "nvim-telescope/telescope.nvim",
-  tag = "0.1.0",
-  requires = { "nvim-lua/plenary.nvim" },
 }
 ```
 
