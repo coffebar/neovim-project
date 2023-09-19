@@ -28,7 +28,7 @@ You can install the plugin using your preferred package manager.
 <details><summary><h3>Lazy.nvim</h3></summary>
 
 ```lua
-{ "nvim-telescope/telescope.nvim", tag = "0.1.0", dependencies = { "nvim-lua/plenary.nvim" } }
+{ "nvim-telescope/telescope.nvim", tag = "0.1.0", dependencies = { "nvim-lua/plenary.nvim" } },
 {
   "coffebar/neovim-project",
   opts = {
