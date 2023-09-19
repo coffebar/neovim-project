@@ -32,8 +32,10 @@ You can install the plugin using your preferred package manager.
 {
   "coffebar/neovim-project",
   opts = {
-    -- your configuration comes here
-    -- or leave it empty to use the default settings
+    projects = { -- define project roots
+      "~/projects/*",
+      "~/.config/*",
+    },
   },
   dependencies = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" },
   priority = 100,
@@ -50,8 +52,10 @@ use {
   "coffebar/neovim-project",
   config = function()
     require("neovim-project").setup {
-      -- your configuration comes here
-      -- or leave it empty to use the default settings
+      projects = { -- define project roots
+        "~/projects/*",
+        "~/.config/*",
+      },
     }
   end
   requires = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" }
