@@ -121,5 +121,6 @@ https://github.com/coffebar/neovim-project/assets/3100053/c83ae8ab-625e-4a44-88e
 
 ## 🤝 Contributing
 
-- Pull requests are welcome.
+- Open a ticket if you want integration with another plugin, or if you want to request a new feature.
 - If you encounter bugs please open an issue.
+- Pull requests are welcome.
