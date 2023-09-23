@@ -2,7 +2,6 @@ local M = {}
 
 local history = require("neovim-project.utils.history")
 local manager = require("session_manager")
-local neotree_restore = require("neovim-project.utils.neo-tree").autocmd_for_restore
 local path = require("neovim-project.utils.path")
 local payload = require("neovim-project.payload")
 local utils = require("session_manager.utils")
@@ -12,6 +11,13 @@ M.save_project_waiting = false
 M.setup_autocmds = function()
   local augroup = vim.api.nvim_create_augroup("neovim-project", { clear = true })
 
+  -- setup events for neo-tree when it's loaded
+  vim.api.nvim_create_autocmd({ "FileType" }, {
+    pattern = "neo-tree",
+    group = augroup,
+    once = true,
+    callback = require("neovim-project.utils.neo-tree").setup_events_for_neotree,
+  })
   -- save history to file when exit nvim
   vim.api.nvim_create_autocmd({ "VimLeavePre" }, {
     pattern = "*",
@@ -54,11 +60,6 @@ M.setup_autocmds = function()
     callback = function()
       payload.load_post()
     end,
-  })
-  vim.api.nvim_create_autocmd({ "FileType" }, {
-    pattern = "neo-tree",
-    group = augroup,
-    callback = neotree_restore,
   })
 end
 
