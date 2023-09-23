@@ -2,8 +2,10 @@ local M = {}
 
 local history = require("neovim-project.utils.history")
 local manager = require("session_manager")
-local utils = require("session_manager.utils")
+local neotree_restore = require("neovim-project.utils.neo-tree").autocmd_for_restore
 local path = require("neovim-project.utils.path")
+local payload = require("neovim-project.payload")
+local utils = require("session_manager.utils")
 
 M.save_project_waiting = false
 
@@ -36,6 +38,27 @@ M.setup_autocmds = function()
     callback = function()
       M.save_project_waiting = true
     end,
+  })
+  -- add more state data to the session file via global variable
+  vim.api.nvim_create_autocmd({ "User" }, {
+    pattern = "SessionSavePre",
+    group = augroup,
+    callback = function()
+      payload.pre_save()
+    end,
+  })
+  -- restore saved state data from the global var in the session file
+  vim.api.nvim_create_autocmd({ "User" }, {
+    pattern = "SessionLoadPost",
+    group = augroup,
+    callback = function()
+      payload.load_post()
+    end,
+  })
+  vim.api.nvim_create_autocmd({ "FileType" }, {
+    pattern = "neo-tree",
+    group = augroup,
+    callback = neotree_restore,
   })
 end
 
