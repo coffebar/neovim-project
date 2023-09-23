@@ -72,6 +72,29 @@ use({
 
 </details>
 
+<details><summary><h3>pckr.nvim</h3></summary>
+
+```lua
+{ "nvim-telescope/telescope.nvim", requires = { { "nvim-lua/plenary.nvim" } } };
+{
+  "coffebar/neovim-project",
+  config = function()
+    -- enable saving the state of plugins in the session
+    vim.opt.sessionoptions:append("globals") -- save global variables that start with an uppercase letter and contain at least one lowercase letter.
+    -- setup neovim-project plugin
+    require("neovim-project").setup {
+      projects = { -- define project roots
+        "~/projects/*",
+        "~/.config/*",
+      },
+    }
+  end,
+  requires = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" }
+};
+```
+
+</details>
+
 ## ⚙️ Configuration
 
 ### Default options:
