@@ -26,7 +26,7 @@
 
 You can install the plugin using your preferred package manager.
 
-<details><summary><h3>Lazy.nvim</h3></summary>
+<details><summary>Lazy.nvim</summary>
 
 ```lua
 { "nvim-telescope/telescope.nvim", tag = "0.1.0", dependencies = { "nvim-lua/plenary.nvim" } },
@@ -49,7 +49,7 @@ You can install the plugin using your preferred package manager.
 
 </details>
 
-<details><summary><h3>packer.nvim</h3></summary>
+<details><summary>packer.nvim</summary>
 
 ```lua
 use({ "nvim-telescope/telescope.nvim", tag = "0.1.0", requires = { { "nvim-lua/plenary.nvim" } } })
@@ -72,7 +72,7 @@ use({
 
 </details>
 
-<details><summary><h3>pckr.nvim</h3></summary>
+<details><summary>pckr.nvim</summary>
 
 ```lua
 { "nvim-telescope/telescope.nvim", requires = { { "nvim-lua/plenary.nvim" } } };
