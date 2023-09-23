@@ -81,13 +81,17 @@ M.setup = function(options)
     project.start_session_here()
   end
 
-  vim.defer_fn(function()
-    -- unregister SessionManager command
+  -- unregister SessionManager command
+  if vim.fn.exists(":SessionManager") == 2 then
+    vim.api.nvim_del_user_command("SessionManager")
+  else
     -- defer is needed on Packer
-    if vim.fn.exists(":SessionManager") == 2 then
-      vim.api.nvim_del_user_command("SessionManager")
-    end
-  end, 100)
+    vim.defer_fn(function()
+      if vim.fn.exists(":SessionManager") == 2 then
+        vim.api.nvim_del_user_command("SessionManager")
+      end
+    end, 100)
+  end
 end
 
 return M
