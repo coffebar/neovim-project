@@ -125,9 +125,7 @@ Use `Ctrl+d` in Telescope to delete the project's session and remove it from the
 
 ## Demo video
 
-
-https://github.com/coffebar/neovim-project/assets/3100053/f909edb5-31d4-41ec-b290-96a11e5eab76
-
+https://github.com/coffebar/neovim-project/assets/3100053/e88ae41a-5606-46c4-a287-4c476ed97ccc
 
 ## 🤝 Contributing
 
