@@ -37,6 +37,10 @@ You can install the plugin using your preferred package manager.
       "~/.config/*",
     },
   },
+  init = function()
+    -- enable saving the state of plugins in the session
+    vim.opt.sessionoptions:append("globals") -- save global variables that start with an uppercase letter and contain at least one lowercase letter.
+  end,
   dependencies = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" },
   priority = 100,
 },
@@ -47,19 +51,22 @@ You can install the plugin using your preferred package manager.
 <details><summary><h3>packer.nvim</h3></summary>
 
 ```lua
-use { "nvim-telescope/telescope.nvim", tag = "0.1.0", requires = { "nvim-lua/plenary.nvim" } }
-use {
+use({ "nvim-telescope/telescope.nvim", tag = "0.1.0", requires = { { "nvim-lua/plenary.nvim" } } })
+use({
   "coffebar/neovim-project",
   config = function()
+    -- enable saving the state of plugins in the session
+    vim.opt.sessionoptions:append("globals") -- save global variables that start with an uppercase letter and contain at least one lowercase letter.
+    -- setup neovim-project plugin
     require("neovim-project").setup {
       projects = { -- define project roots
         "~/projects/*",
         "~/.config/*",
       },
     }
-  end
+  end,
   requires = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" }
-}
+})
 ```
 
 </details>
