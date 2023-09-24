@@ -69,6 +69,28 @@ M.resolve = function(filename)
   return vim.fn.resolve(filename)
 end
 
+M.delete_duplicates = function(tbl)
+  -- Remove duplicates from table, preserving order
+  local cache_dict = {}
+  for _, v in ipairs(tbl) do
+    if cache_dict[v] == nil then
+      cache_dict[v] = 1
+    else
+      cache_dict[v] = cache_dict[v] + 1
+    end
+  end
+
+  local res = {}
+  for _, v in ipairs(tbl) do
+    if cache_dict[v] == 1 then
+      table.insert(res, v)
+    else
+      cache_dict[v] = cache_dict[v] - 1
+    end
+  end
+  return res
+end
+
 M.fix_symlinks_for_history = function(dirs)
   -- Replace paths with paths from `projects` option
   local projects = M.get_all_projects()
@@ -81,13 +103,7 @@ M.fix_symlinks_for_history = function(dirs)
     end
   end
   -- remove duplicates
-  local unique = {}
-  for _, dir in ipairs(dirs) do
-    if not vim.tbl_contains(unique, dir) then
-      table.insert(unique, dir)
-    end
-  end
-  return unique
+  return M.delete_duplicates(dirs)
 end
 
 return M

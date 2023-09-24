@@ -100,7 +100,7 @@ local function sanitize_projects()
     tbl = M.session_projects
   end
 
-  tbl = delete_duplicates(tbl)
+  tbl = path.delete_duplicates(tbl)
 
   local real_tbl = {}
   for _, dir in ipairs(tbl) do
