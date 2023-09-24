@@ -29,7 +29,6 @@ You can install the plugin using your preferred package manager.
 <details><summary>Lazy.nvim</summary>
 
 ```lua
-{ "nvim-telescope/telescope.nvim", tag = "0.1.0", dependencies = { "nvim-lua/plenary.nvim" } },
 {
   "coffebar/neovim-project",
   opts = {
@@ -42,7 +41,11 @@ You can install the plugin using your preferred package manager.
     -- enable saving the state of plugins in the session
     vim.opt.sessionoptions:append("globals") -- save global variables that start with an uppercase letter and contain at least one lowercase letter.
   end,
-  dependencies = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" },
+  dependencies = {
+    { "nvim-lua/plenary.nvim" },
+    { "nvim-telescope/telescope.nvim", tag = "0.1.0" },
+    { "Shatur/neovim-session-manager" },
+  },
   priority = 100,
 },
 ```
@@ -52,7 +55,6 @@ You can install the plugin using your preferred package manager.
 <details><summary>packer.nvim</summary>
 
 ```lua
-use({ "nvim-telescope/telescope.nvim", tag = "0.1.0", requires = { { "nvim-lua/plenary.nvim" } } })
 use({
   "coffebar/neovim-project",
   config = function()
@@ -66,7 +68,11 @@ use({
       },
     }
   end,
-  requires = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" }
+  requires = {
+    { "nvim-lua/plenary.nvim" },
+    { "nvim-telescope/telescope.nvim", tag = "0.1.0" },
+    { "Shatur/neovim-session-manager" },
+  }
 })
 ```
 
@@ -75,7 +81,6 @@ use({
 <details><summary>pckr.nvim</summary>
 
 ```lua
-{ "nvim-telescope/telescope.nvim", requires = { { "nvim-lua/plenary.nvim" } } };
 {
   "coffebar/neovim-project",
   config = function()
@@ -89,7 +94,11 @@ use({
       },
     }
   end,
-  requires = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" }
+  requires = {
+    { "nvim-lua/plenary.nvim" },
+    { "nvim-telescope/telescope.nvim", tag = "0.1.0" },
+    { "Shatur/neovim-session-manager" },
+  }
 };
 ```
 
