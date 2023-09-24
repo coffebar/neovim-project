@@ -25,6 +25,7 @@ local function create_finder(discover)
     results = path.get_all_projects()
   else
     results = history.get_recent_projects()
+    results = path.fix_symlinks_for_history(results)
     -- Reverse results
     for i = 1, math.floor(#results / 2) do
       results[i], results[#results - i + 1] = results[#results - i + 1], results[i]

@@ -69,4 +69,25 @@ M.resolve = function(filename)
   return vim.fn.resolve(filename)
 end
 
+M.fix_symlinks_for_history = function(dirs)
+  -- Replace paths with paths from `projects` option
+  local projects = M.get_all_projects()
+  for i, dir in ipairs(dirs) do
+    for _, path in ipairs(projects) do
+      if M.resolve(path) == M.resolve(dir) then
+        dirs[i] = path
+        break
+      end
+    end
+  end
+  -- remove duplicates
+  local unique = {}
+  for _, dir in ipairs(dirs) do
+    if not vim.tbl_contains(unique, dir) then
+      table.insert(unique, dir)
+    end
+  end
+  return unique
+end
+
 return M
