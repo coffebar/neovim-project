@@ -41,7 +41,6 @@ M.get_all_projects = function()
       end
     end
   end
-  table.sort(projects)
   return projects
 end
 
