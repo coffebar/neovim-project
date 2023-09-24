@@ -53,23 +53,21 @@ function M.get_state_as_lua_string()
   local state = filesystem_state()
   -- create table dirs_to_restore from state.explicitly_opened_directories and M.dirs_to_restore
   local restore = {}
-  local has_to_restore = false
+
   if M.dirs_to_restore ~= nil then
     for _, path in ipairs(M.dirs_to_restore) do
       restore[path] = true
-      has_to_restore = true
     end
   end
   if state ~= nil and state.explicitly_opened_directories ~= nil then
     for path, opened in pairs(state.explicitly_opened_directories) do
       if opened then
         restore[path] = true
-        has_to_restore = true
       end
     end
   end
 
-  if has_to_restore then
+  if vim.tbl_count(restore) > 0 then
     -- join all keys with a comma
     local cwd = vim.loop.cwd()
     local data = {}
