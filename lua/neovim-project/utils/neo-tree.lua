@@ -47,7 +47,7 @@ local function after_render()
   end
 end
 
-function M.get_state_as_lua_string()
+M.get_state_as_lua_string = function()
   -- Returns a string that can be used in lua code as value (table or nil)
   -- Value is a table of paths that were explicitly opened in neo-tree
   local state = filesystem_state()
@@ -86,7 +86,7 @@ function M.get_state_as_lua_string()
   -- lua print(require("neovim-project.utils.neo-tree").get_state_as_lua_string())
 end
 
-function M.restore_expanded(dirs_relative)
+M.restore_expanded = function(dirs_relative)
   -- Call this function after session load
   if #dirs_relative == 0 then
     return
@@ -109,7 +109,7 @@ function M.restore_expanded(dirs_relative)
   M.dirs_to_restore = dirs_absolute -- save dirs to restore later in autocmd
 end
 
-function M.setup_events_for_neotree()
+M.setup_events_for_neotree = function()
   local installed, events = pcall(require, "neo-tree.events")
   if not installed then
     vim.notify("Neovim-project: neo-tree.events is not found", vim.log.levels.WARN)

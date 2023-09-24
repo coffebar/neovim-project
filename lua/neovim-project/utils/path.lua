@@ -54,7 +54,7 @@ M.cwd = function()
   return M.short_path(uv.cwd())
 end
 
-function M.create_scaffolding(callback)
+M.create_scaffolding = function(callback)
   -- Create directories
   if callback ~= nil then -- async
     uv.fs_mkdir(M.projectpath, 448, callback)

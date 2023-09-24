@@ -26,32 +26,11 @@ local function dir_exists(dir)
   return false
 end
 
-local function delete_duplicates(tbl)
-  local cache_dict = {}
-  for _, v in ipairs(tbl) do
-    if cache_dict[v] == nil then
-      cache_dict[v] = 1
-    else
-      cache_dict[v] = cache_dict[v] + 1
-    end
-  end
-
-  local res = {}
-  for _, v in ipairs(tbl) do
-    if cache_dict[v] == 1 then
-      table.insert(res, v)
-    else
-      cache_dict[v] = cache_dict[v] - 1
-    end
-  end
-  return res
-end
-
-function M.add_session_project(dir)
+M.add_session_project = function(dir)
   table.insert(M.session_projects, dir)
 end
 
-function M.delete_project(dir)
+M.delete_project = function(dir)
   for k, v in pairs(M.recent_projects) do
     if v == dir then
       M.recent_projects[k] = nil
@@ -73,7 +52,7 @@ local function deserialize_history(history_data)
     end
   end
 
-  M.recent_projects = delete_duplicates(projects)
+  M.recent_projects = path.delete_duplicates(projects)
 end
 
 local function setup_watch()
@@ -96,7 +75,7 @@ local function setup_watch()
   end
 end
 
-function M.read_projects_from_history()
+M.read_projects_from_history = function()
   open_history("r", function(_, fd)
     setup_watch()
     if fd ~= nil then
@@ -137,7 +116,7 @@ function M.get_recent_projects()
   return sanitize_projects()
 end
 
-function M.write_projects_to_history()
+M.write_projects_to_history = function()
   -- Unlike read projects, write projects is synchronous
   -- because it runs when vim ends
   local mode = "w"

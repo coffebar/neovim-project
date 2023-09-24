@@ -80,7 +80,7 @@ M.in_session = function()
   return utils.is_session
 end
 
-function M.switch_after_save_session(dir)
+M.switch_after_save_session = function(dir)
   -- Switch project after saving current session
   --
   -- save current session
@@ -94,7 +94,7 @@ function M.switch_after_save_session(dir)
   M.load_session(dir)
 end
 
-function M.load_session(dir)
+M.load_session = function(dir)
   if not dir then
     return
   end
@@ -106,7 +106,7 @@ function M.load_session(dir)
   M.start_session_here()
 end
 
-function M.start_session_here()
+M.start_session_here = function()
   -- load session or create new one if not exists
   local cwd = path.cwd()
   if not cwd then
@@ -122,10 +122,14 @@ function M.start_session_here()
     manager.save_current_session()
   end
   -- add to history
-  history.add_session_project(cwd)
+  if path.dir_pretty ~= nil then
+    history.add_session_project(path.dir_pretty)
+  else
+    history.add_session_project(cwd)
+  end
 end
 
-function M.init()
+M.init = function()
   M.setup_autocmds()
   history.read_projects_from_history()
 end
