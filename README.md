@@ -26,7 +26,7 @@
 
 You can install the plugin using your preferred package manager.
 
-<details><summary>Lazy.nvim</summary>
+<details open><summary>Lazy.nvim</summary>
 
 ```lua
 {
