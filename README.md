@@ -17,10 +17,10 @@
 ## Usage
 
 1. Set patterns in the [configuration](#%EF%B8%8F-configuration) to discover your projects.
-2. Use [commands](#commands) to open your project. Or open nvim in the project directory. Both methods will create a session.
+2. Use [commands](#commands) to open your project. Or open Neovim in the project directory. Both methods will create a session.
 3. Open files inside the project and work.
-4. The session will be saved before closing nvim or switching to another project.
-5. Open nvim in any non-project directory and the latest session will be loaded.
+4. The session will be saved before closing Neovim or switching to another project via [commands](#commands).
+5. Open Neovim in any non-project directory and the latest session will be loaded.
    
 ## 📦 Installation
 
@@ -140,12 +140,13 @@ use({
 
 ## Commands
 
-Plugin will add these commands:
+Neovim project manager will add these commands:
 
 - `:Telescope neovim-project discover` - find a project based on patterns.
 
 - `:Telescope neovim-project history` - select a project from your recent history.
 
+History is sorted by access time. "Discover" keeps order as you have in the config.
 
 #### Telescope mappings
 
