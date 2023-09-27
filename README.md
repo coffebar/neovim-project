@@ -120,6 +120,8 @@ use({
   },
   -- Path to store history and sessions
   datapath = vim.fn.stdpath("data"), -- ~/.local/share/nvim/
+  -- Load the most recent session on startup if not in the project directory
+  last_session_on_startup = true,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {

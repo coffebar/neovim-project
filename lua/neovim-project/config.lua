@@ -12,6 +12,8 @@ M.defaults = {
   },
   -- Path to store history and sessions
   datapath = vim.fn.stdpath("data"), -- ~/.local/share/nvim/
+  -- Load the most recent session on startup if not in the project directory
+  last_session_on_startup = true,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {
@@ -50,18 +52,19 @@ M.setup = function(options)
 
   local session_manager_config = require("session_manager.config")
   local AutoLoadMode = session_manager_config.AutoloadMode
-  if vim.fn.argc() > 0 then
-    -- if nvim started with args, disable autoload
-    -- open just given files
-    M.options.session_manager_opts.autoload_mode = AutoLoadMode.Disabled
-  else
-    -- if nvim started in project dir, open project's session
+  -- Disable session autoload by default
+  M.options.session_manager_opts.autoload_mode = AutoLoadMode.Disabled
+
+  -- Don't load a session if nvim started with args, open just given files
+  if vim.fn.argc() == 0 then
     if path.cwd_matches_project() then
-      M.options.session_manager_opts.autoload_mode = AutoLoadMode.Disabled
+      -- nvim started in the project dir, open current dir session
       start_session_here = true
     else
-      -- open last session
-      M.options.session_manager_opts.autoload_mode = AutoLoadMode.LastSession
+      -- Open the recent session if not disabled from config
+      if M.options.last_session_on_startup then
+        M.options.session_manager_opts.autoload_mode = AutoLoadMode.LastSession
+      end
     end
   end
 
