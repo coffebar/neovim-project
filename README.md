@@ -148,6 +148,8 @@ Neovim project manager will add these commands:
 
 - `:Telescope neovim-project history` - select a project from your recent history.
 
+- `:NeovimProjectLoadRecent` - open the previous session.
+
 History is sorted by access time. "Discover" keeps order as you have in the config.
 
 #### Telescope mappings

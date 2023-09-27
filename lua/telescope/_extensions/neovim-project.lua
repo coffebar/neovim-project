@@ -68,15 +68,10 @@ local function change_working_directory(prompt_bufnr)
     actions.close(prompt_bufnr)
     return
   end
-  local project_path = selected_entry.value
+  local dir = selected_entry.value
   actions.close(prompt_bufnr)
   -- session_manager will change session
-  if not project.in_session() then
-    -- switch project without saving current session
-    project.load_session(project_path)
-  else
-    project.switch_after_save_session(project_path)
-  end
+  project.switch_project(dir)
 end
 
 local function delete_project(prompt_bufnr)
@@ -85,11 +80,12 @@ local function delete_project(prompt_bufnr)
     actions.close(prompt_bufnr)
     return
   end
-  local choice = vim.fn.confirm("Delete '" .. selectedEntry.value .. "' from project list?", "&Yes\n&No", 2)
+  local dir = selectedEntry.value
+  local choice = vim.fn.confirm("Delete '" .. dir .. "' from project list?", "&Yes\n&No", 2)
 
   if choice == 1 then
-    history.delete_project(selectedEntry.value)
-    project.delete_session(selectedEntry.value)
+    history.delete_project(dir)
+    project.delete_session(dir)
 
     local finder = create_finder(false)
     state.get_current_picker(prompt_bufnr):refresh(finder, {

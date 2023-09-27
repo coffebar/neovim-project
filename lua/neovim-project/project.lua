@@ -129,9 +129,45 @@ M.start_session_here = function()
   end
 end
 
+M.create_commands = function()
+  -- Create user commands
+
+  -- Open the previous session
+  vim.api.nvim_create_user_command("NeovimProjectLoadRecent", function(args)
+    local cnt = args.count
+    if cnt < 1 then
+      -- cnt is an offset from the last session in history
+      if M.in_session() then
+        cnt = 1 -- skip current session
+      else
+        cnt = 0
+      end
+    end
+    local recent = history.get_recent_projects()
+    local index = #recent - cnt
+    if index < 1 then
+      index = 1
+    end
+    if #recent > 0 then
+      M.switch_project(recent[index])
+    else
+      vim.notify("No recent projects")
+    end
+  end, { nargs = 0, count = true })
+end
+
+M.switch_project = function(dir)
+  if M.in_session() then
+    M.switch_after_save_session(dir)
+  else
+    M.load_session(dir)
+  end
+end
+
 M.init = function()
   M.setup_autocmds()
   history.read_projects_from_history()
+  M.create_commands()
 end
 
 return M
