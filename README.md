@@ -205,7 +205,6 @@ local function update_git_env_for_dotfiles()
       -- export git location into ENV
       vim.env.GIT_DIR = git_dir
       vim.env.GIT_WORK_TREE = home
-      return
     end
   else
     if vim.env.GIT_DIR == git_dir then
