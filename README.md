@@ -171,7 +171,7 @@ If you have a repository for your dotfiles, you will find it convenient to acces
 Project pattern `~/.config/*` matches many programs config folders, including Neovim.
 So when you need to edit Neovim config, you open project `~/.config/nvim` by typing "nv..". When you need to edit alacritty config - you start typing "ala.."
 
-Of course, you want to use vim-fugitive and gitsigns in these projects. And it should be a single git repo for dotfiles. By default, Neovim will now know anything about your dotfiles repo.
+Of course, you want to use vim-fugitive and gitsigns in these projects. And it should be a single git repo for dotfiles. By default, Neovim will know nothing about your dotfiles repo.
 
 Create autocommands to update env variables to tell Neovim where is your dotfiles bare repo. Here is an example from my dotfiles:
 
