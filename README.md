@@ -191,21 +191,16 @@ local function update_git_env_for_dotfiles()
     return
   end
 
+  -- check dotfiles dir exists on current machine
   if vim.fn.isdirectory(git_dir) ~= 1 then
     vim.env.GIT_DIR = nil
     vim.env.GIT_WORK_TREE = nil
     return
   end
 
-  local in_dotfiles = function()
-    local cwd = vim.loop.cwd()
-    if vim.startswith(cwd, home .. "/.config/") or cwd == home or cwd == home .. "/.local/bin" then
-      return true
-    end
-    return false
-  end
-
-  if in_dotfiles() then
+  -- check if the current working directory should belong to dotfiles
+  local cwd = vim.loop.cwd()
+  if vim.startswith(cwd, home .. "/.config/") or cwd == home or cwd == home .. "/.local/bin" then
     if vim.env.GIT_DIR == nil then
       -- export git location into ENV
       vim.env.GIT_DIR = git_dir
