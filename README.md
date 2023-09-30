@@ -164,6 +164,83 @@ Use `Ctrl+d` in Telescope to delete the project's session and remove it from the
 
 https://github.com/coffebar/neovim-project/assets/3100053/e88ae41a-5606-46c4-a287-4c476ed97ccc
 
+## How to manage dotfiles repo
+
+If you have a repository for your dotfiles, you will find it convenient to access them through projects.
+
+Project pattern `~/.config/*` matches many programs config folders, including Neovim.
+So when you need to edit Neovim config, you open project `~/.config/nvim` by typing "nv..". When you need to edit alacritty config - you start typing "ala.."
+
+Of course, you want to use vim-fugitive and gitsigns in these projects. And it should be a single git repo for dotfiles. By default, Neovim will now know anything about your dotfiles repo.
+
+Create autocommands to update env variables to tell Neovim where is your dotfiles bare repo. Here is an example from my dotfiles:
+
+
+```lua
+local augroup = vim.api.nvim_create_augroup("user_cmds", { clear = true })
+
+local function update_git_env_for_dotfiles()
+  -- Auto change ENV variables to enable
+  -- bare git repository for dotfiles after
+  -- loading saved session
+  local home = vim.fn.expand("~")
+  local git_dir = home .. "/dotfiles"
+
+  if vim.env.GIT_DIR ~= nil and vim.env.GIT_DIR ~= git_dir then
+    return
+  end
+
+  if vim.fn.isdirectory(git_dir) ~= 1 then
+    vim.env.GIT_DIR = nil
+    vim.env.GIT_WORK_TREE = nil
+    return
+  end
+
+  local in_dotfiles = function()
+    local cwd = vim.loop.cwd()
+    if vim.startswith(cwd, home .. "/.config/") or cwd == home or cwd == home .. "/.local/bin" then
+      return true
+    end
+    return false
+  end
+
+  if in_dotfiles() then
+    if vim.env.GIT_DIR == nil then
+      -- export git location into ENV
+      vim.env.GIT_DIR = git_dir
+      vim.env.GIT_WORK_TREE = home
+      return
+    end
+  else
+    if vim.env.GIT_DIR == git_dir then
+      -- unset variables
+      vim.env.GIT_DIR = nil
+      vim.env.GIT_WORK_TREE = nil
+    end
+  end
+end
+
+vim.api.nvim_create_autocmd("DirChanged", {
+  pattern = { "*" },
+  group = augroup,
+  desc = "Update git env for dotfiles after changing directory",
+  callback = function()
+    update_git_env_for_dotfiles()
+  end,
+})
+
+vim.api.nvim_create_autocmd("User", {
+  pattern = { "SessionLoadPost" },
+  group = augroup,
+  desc = "Update git env for dotfiles after loading session",
+  callback = function()
+    update_git_env_for_dotfiles()
+    -- restart lsp server for PHP to reload includePaths
+    vim.api.nvim_command("silent! LspRestart intelephense")
+  end,
+})
+```
+
 ## 🤝 Contributing
 
 - Open a ticket if you want integration with another plugin, or if you want to request a new feature.
