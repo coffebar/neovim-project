@@ -241,6 +241,8 @@ vim.api.nvim_create_autocmd("User", {
 })
 ```
 
+This code should be required from your `init.lua` before plugins.
+
 ## 🤝 Contributing
 
 - Open a ticket if you want integration with another plugin, or if you want to request a new feature.
