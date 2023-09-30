@@ -46,6 +46,7 @@ You can install the plugin using your preferred package manager.
     { "nvim-telescope/telescope.nvim", tag = "0.1.0" },
     { "Shatur/neovim-session-manager" },
   },
+  lazy = false,
   priority = 100,
 },
 ```
