@@ -4,17 +4,12 @@ local M = {}
 
 M.recent_projects = nil -- projects from previous neovim sessions
 M.session_projects = {} -- projects from current neovim session
-M.has_watch_setup = false
+M.has_watch_setup = false -- file change watch has been setup
+M.history_read = false -- history has been read at least once
 
-local function open_history(mode, callback)
-  if callback ~= nil then -- async
-    path.create_scaffolding(function(_, _)
-      uv.fs_open(path.historyfile, mode, 438, callback)
-    end)
-  else -- sync
-    path.create_scaffolding()
-    return uv.fs_open(path.historyfile, mode, 438)
-  end
+local function open_history(mode)
+  path.create_scaffolding()
+  return uv.fs_open(path.historyfile, mode, 438)
 end
 
 local function dir_exists(dir)
@@ -76,18 +71,22 @@ local function setup_watch()
 end
 
 M.read_projects_from_history = function()
-  open_history("r", function(_, fd)
-    setup_watch()
-    if fd ~= nil then
-      uv.fs_fstat(fd, function(_, stat)
-        if stat ~= nil then
-          uv.fs_read(fd, stat.size, -1, function(_, data)
-            uv.fs_close(fd, function(_, _) end)
-            deserialize_history(data)
-          end)
-        end
-      end)
+  local file = open_history("r")
+  setup_watch()
+  if file == nil then
+    M.history_read = true
+    return
+  end
+  uv.fs_fstat(file, function(_, stat)
+    if stat == nil then
+      M.history_read = true
+      return
     end
+    uv.fs_read(file, stat.size, -1, function(_, data)
+      uv.fs_close(file, function(_, _) end)
+      deserialize_history(data)
+      M.history_read = true
+    end)
   end)
 end
 
@@ -113,12 +112,23 @@ local function sanitize_projects()
 end
 
 function M.get_recent_projects()
+  M.make_sure_read_projects_from_history()
   return sanitize_projects()
 end
 
+function M.make_sure_read_projects_from_history()
+  if M.history_read == false then
+    M.read_projects_from_history()
+    vim.wait(200, function()
+      return M.history_read
+    end)
+  end
+end
+
 M.write_projects_to_history = function()
-  -- Unlike read projects, write projects is synchronous
+  -- Write projects is synchronous
   -- because it runs when vim ends
+  M.make_sure_read_projects_from_history()
   local mode = "w"
   if M.recent_projects == nil then
     mode = "a"

@@ -166,7 +166,6 @@ end
 
 M.init = function()
   M.setup_autocmds()
-  history.read_projects_from_history()
   M.create_commands()
 end
 
