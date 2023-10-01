@@ -53,11 +53,15 @@ M.setup_autocmds = function()
       payload.pre_save()
     end,
   })
-  -- restore saved state data from the global var in the session file
+  -- 1. Trigger FileType autocmd to attach lsp server to the active buffer
+  -- 2. Restore saved state data from the global var in the session file
   vim.api.nvim_create_autocmd({ "User" }, {
     pattern = "SessionLoadPost",
     group = augroup,
     callback = function()
+      vim.defer_fn(function()
+        vim.api.nvim_command("silent! doautocmd FileType")
+      end, 200)
       payload.load_post()
     end,
   })
