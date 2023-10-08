@@ -43,7 +43,7 @@ You can install the plugin using your preferred package manager.
   end,
   dependencies = {
     { "nvim-lua/plenary.nvim" },
-    { "nvim-telescope/telescope.nvim", tag = "0.1.0" },
+    { "nvim-telescope/telescope.nvim" },
     { "Shatur/neovim-session-manager" },
   },
   lazy = false,
@@ -71,7 +71,7 @@ use({
   end,
   requires = {
     { "nvim-lua/plenary.nvim" },
-    { "nvim-telescope/telescope.nvim", tag = "0.1.0" },
+    { "nvim-telescope/telescope.nvim" },
     { "Shatur/neovim-session-manager" },
   }
 })
@@ -97,7 +97,7 @@ use({
   end,
   requires = {
     { "nvim-lua/plenary.nvim" },
-    { "nvim-telescope/telescope.nvim", tag = "0.1.0" },
+    { "nvim-telescope/telescope.nvim" },
     { "Shatur/neovim-session-manager" },
   }
 };
