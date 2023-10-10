@@ -136,6 +136,7 @@ use({
       "gitcommit",
       "gitrebase",
       "qf",
+      "toggleterm",
     },
   },
 }

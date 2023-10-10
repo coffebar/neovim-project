@@ -27,6 +27,7 @@ M.defaults = {
       "gitcommit",
       "gitrebase",
       "qf",
+      "toggleterm",
     },
     -- keep these as is
     autosave_last_session = true,
