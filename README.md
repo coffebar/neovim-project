@@ -71,7 +71,7 @@ use({
   end,
   requires = {
     { "nvim-lua/plenary.nvim" },
-    { "nvim-telescope/telescope.nvim", tag = "0.1.3" },
+    { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
     { "Shatur/neovim-session-manager" },
   }
 })
@@ -97,7 +97,7 @@ use({
   end,
   requires = {
     { "nvim-lua/plenary.nvim" },
-    { "nvim-telescope/telescope.nvim", tag = "0.1.3" },
+    { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
     { "Shatur/neovim-session-manager" },
   }
 };
