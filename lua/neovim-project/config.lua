@@ -58,7 +58,7 @@ M.setup = function(options)
 
   -- Don't load a session if nvim started with args, open just given files
   if vim.fn.argc() == 0 then
-    if path.cwd_matches_project() then
+    if path.dir_matches_project() then
       -- nvim started in the project dir, open current dir session
       start_session_here = true
     else
@@ -67,6 +67,12 @@ M.setup = function(options)
         M.options.session_manager_opts.autoload_mode = AutoLoadMode.LastSession
       end
     end
+  end
+
+  local open_path = path.resolve("%:p")
+  if open_path ~= nil and path.dir_matches_project(open_path) then
+    vim.api.nvim_set_current_dir(open_path)
+    start_session_here = true
   end
 
   M.options.session_manager_opts.sessions_dir = path.sessionspath
