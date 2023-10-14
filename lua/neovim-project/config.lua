@@ -69,6 +69,12 @@ M.setup = function(options)
     end
   end
 
+  local open_path = path.resolve("%:p")
+  if open_path ~= nil and path.dir_matches_project(open_path) then
+    vim.api.nvim_set_current_dir(open_path)
+    start_session_here = true
+  end
+
   M.options.session_manager_opts.sessions_dir = path.sessionspath
 
   -- Session Manager setup
