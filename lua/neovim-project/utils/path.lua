@@ -16,12 +16,12 @@ function M.init()
   M.homedir = vim.fn.expand("~")
 end
 
-M.cwd_matches_project = function()
+M.dir_matches_project = function(dir)
+  local dir_resolved = dir or M.resolve(M.cwd())
   -- Check if current working directory mathch project patterns
   local projects = M.get_all_projects()
-  local cwd_resolved = M.resolve(M.cwd())
   for _, path in ipairs(projects) do
-    if M.resolve(path) == cwd_resolved then
+    if M.resolve(path) == dir_resolved then
       M.dir_pretty = M.short_path(path) -- store path with user defined symlinks
       return true
     end

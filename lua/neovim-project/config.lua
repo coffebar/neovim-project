@@ -58,7 +58,7 @@ M.setup = function(options)
 
   -- Don't load a session if nvim started with args, open just given files
   if vim.fn.argc() == 0 then
-    if path.cwd_matches_project() then
+    if path.dir_matches_project() then
       -- nvim started in the project dir, open current dir session
       start_session_here = true
     else
