@@ -46,6 +46,7 @@ end
 
 M.short_path = function(path)
   -- Reduce file name to be relative to the home directory, if possible.
+  path = M.resolve(path)
   return vim.fn.fnamemodify(path, ":~")
 end
 
