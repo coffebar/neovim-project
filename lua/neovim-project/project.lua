@@ -63,6 +63,35 @@ M.setup_autocmds = function()
         vim.api.nvim_command("silent! doautocmd FileType")
       end, 200)
       payload.load_post()
+      if path.dir_pretty == nil then
+        path.dir_pretty = path.cwd()
+      end
+    end,
+  })
+  -- Exit from session when directory changed from outside
+  vim.api.nvim_create_autocmd({ "DirChangedPre" }, {
+    pattern = "global",
+    group = augroup,
+    callback = function(event)
+      if path.dir_pretty == nil then
+        return
+      end
+      if path.dir_pretty ~= path.short_path(event.file) then
+        -- directory changed from outside
+        history.write_projects_to_history()
+        local dir = path.dir_pretty
+        vim.notify("CWD Changed! Exit from session " .. dir, vim.log.levels.INFO, { title = "Neovim Project" })
+        path.dir_pretty = nil
+        utils.is_session = false
+        -- touch session file to update mtime and auto load it on next start
+        local sessions = utils.get_sessions()
+        for idx, session in ipairs(sessions) do
+          if path.short_path(session.dir.filename) == dir then
+            local Path = require("plenary.path")
+            return Path:new(sessions[idx].filename):touch()
+          end
+        end
+      end
     end,
   })
 end
@@ -103,10 +132,10 @@ M.load_session = function(dir)
     return
   end
   if path.cwd() ~= dir then
+    path.dir_pretty = path.short_path(dir)
     vim.api.nvim_set_current_dir(dir)
   end
 
-  path.dir_pretty = path.short_path(dir)
   M.start_session_here()
 end
 
