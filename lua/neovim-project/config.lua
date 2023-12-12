@@ -58,7 +58,10 @@ M.setup = function(options)
 
   -- Don't load a session if nvim started with args, open just given files
   if vim.fn.argc() == 0 then
-    if path.dir_matches_project() then
+    local cmd = require("neovim-project.utils.cmd")
+    local is_man = cmd.check_open_cmd("+Man!")
+
+    if path.dir_matches_project() and not is_man then
       -- nvim started in the project dir, open current dir session
       start_session_here = true
     else
