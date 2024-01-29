@@ -57,7 +57,7 @@ M.setup = function(options)
   M.options.session_manager_opts.autoload_mode = AutoLoadMode.Disabled
 
   -- Don't load a session if nvim started with args, open just given files
-  if vim.fn.argc() == 0 then
+  if vim.fn.argc() == 0 and M.options.last_session_on_startup then
     local cmd = require("neovim-project.utils.cmd")
     local is_man = cmd.check_open_cmd("+Man!")
 
@@ -65,10 +65,7 @@ M.setup = function(options)
       -- nvim started in the project dir, open current dir session
       start_session_here = true
     else
-      -- Open the recent session if not disabled from config
-      if M.options.last_session_on_startup then
-        M.options.session_manager_opts.autoload_mode = AutoLoadMode.LastSession
-      end
+      M.options.session_manager_opts.autoload_mode = AutoLoadMode.LastSession
     end
   end
 
