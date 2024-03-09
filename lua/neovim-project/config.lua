@@ -14,6 +14,8 @@ M.defaults = {
   datapath = vim.fn.stdpath("data"), -- ~/.local/share/nvim/
   -- Load the most recent session on startup if not in the project directory
   last_session_on_startup = true,
+  -- Dashboard mode prevent session autoload on startup
+  dashboard_mode = false,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {
@@ -57,7 +59,7 @@ M.setup = function(options)
   M.options.session_manager_opts.autoload_mode = AutoLoadMode.Disabled
 
   -- Don't load a session if nvim started with args, open just given files
-  if vim.fn.argc() == 0 then
+  if vim.fn.argc() == 0 and not M.options.dashboard_mode then
     local cmd = require("neovim-project.utils.cmd")
     local is_man = cmd.check_open_cmd("+Man!")
 
@@ -73,7 +75,7 @@ M.setup = function(options)
   end
 
   local open_path = path.resolve("%:p")
-  if open_path ~= nil and path.dir_matches_project(open_path) then
+  if open_path ~= nil and not M.options.dashboard_mode and path.dir_matches_project(open_path) then
     vim.api.nvim_set_current_dir(open_path)
     start_session_here = true
   end
