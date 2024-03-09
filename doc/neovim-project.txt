@@ -138,6 +138,8 @@ DEFAULT OPTIONS: ~
       datapath = vim.fn.stdpath("data"), -- ~/.local/share/nvim/
       -- Load the most recent session on startup if not in the project directory
       last_session_on_startup = true,
+      -- Dashboard mode prevent session autoload on startup
+      dashboard_mode = false,
     
       -- Overwrite some of Session Manager options
       session_manager_opts = {
