@@ -154,6 +154,10 @@ Neovim project manager will add these commands:
 
 - `:NeovimProjectLoadRecent` - open the previous session.
 
+- `:NeovimProjectLoadHist` - opens the project from the history providing a project name.
+
+- `:NeovimProjectLoad` - opens the project from all your projects providing a project name.
+
 History is sorted by access time. "Discover" keeps order as you have in the config.
 
 #### Telescope mappings
