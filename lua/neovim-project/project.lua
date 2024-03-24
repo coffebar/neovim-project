@@ -187,6 +187,60 @@ M.create_commands = function()
       vim.notify("No recent projects")
     end
   end, { nargs = 0, count = true })
+
+  -- Open the project by name
+  vim.api.nvim_create_user_command("NeovimProjectLoadHist", function(args)
+    local arg = args.args
+    local recentprojects = history.get_recent_projects()
+    local recent = {}
+    for _, v in ipairs(recentprojects) do
+      local name = vim.fn.fnamemodify(v, ":t")
+      recent[name] = v
+    end
+
+    if recent[arg] then
+      M.switch_project(recent[arg])
+    else
+      vim.notify("Project not found")
+    end
+  end, {
+    nargs = 1,
+    complete = function()
+      local recentprojects = history.get_recent_projects()
+      local recent = {}
+      for _, v in ipairs(recentprojects) do
+        local name = vim.fn.fnamemodify(v, ":t")
+        table.insert(recent, name)
+      end
+      return recent
+    end,
+  })
+  vim.api.nvim_create_user_command("NeovimProjectLoad", function(args)
+    local arg = args.args
+    local allprojects = path.get_all_projects()
+    local projects = {}
+    for _, v in ipairs(allprojects) do
+      local name = vim.fn.fnamemodify(v, ":t")
+      projects[name] = v
+    end
+
+    if projects[arg] then
+      M.switch_project(projects[arg])
+    else
+      vim.notify("Project not found")
+    end
+  end, {
+    nargs = 1,
+    complete = function()
+      local projects = {}
+      local allprojects = path.get_all_projects()
+      for _, v in ipairs(allprojects) do
+        local name = vim.fn.fnamemodify(v, ":t")
+        table.insert(projects, name)
+      end
+      return projects
+    end,
+  })
 end
 
 M.switch_project = function(dir)
