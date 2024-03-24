@@ -188,7 +188,7 @@ M.create_commands = function()
     end
   end, { nargs = 0, count = true })
 
-  -- Open the project by name
+  -- Open the project from the history by name
   vim.api.nvim_create_user_command("NeovimProjectLoadHist", function(args)
     local arg = args.args
     local recentprojects = history.get_recent_projects()
@@ -215,6 +215,8 @@ M.create_commands = function()
       return recent
     end,
   })
+
+  -- Open the project from all projects by name
   vim.api.nvim_create_user_command("NeovimProjectLoad", function(args)
     local arg = args.args
     local allprojects = path.get_all_projects()
