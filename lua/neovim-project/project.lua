@@ -198,14 +198,8 @@ M.create_commands = function()
       table.insert(recent, val)
     end
 
-    local projectpath = ""
     if vim.tbl_contains(recent, arg) then
-      if vim.loop.os_uname().sysname == "Windows_NT" then
-        projectpath = string.gsub(arg, "/", "\\")
-      else
-        projectpath = arg
-      end
-      M.switch_project(projectpath)
+      M.switch_project(arg)
     else
       vim.notify("Project not found")
     end
@@ -224,25 +218,16 @@ M.create_commands = function()
 
   -- Open the project from all projects by name
   vim.api.nvim_create_user_command("NeovimProjectLoad", function(args)
-    local arg1 = args.args
-    local arg = arg1:gsub(" .*$", "")
-
+    local arg = args.args
     local allprojects = path.get_all_projects()
     local projects = {}
-
     for _, v in ipairs(allprojects) do
       local val = string.gsub(v, "\\", "/")
       table.insert(projects, val)
     end
 
-    local projectpath = ""
     if vim.tbl_contains(projects, arg) then
-      if vim.loop.os_uname().sysname == "Windows_NT" then
-        projectpath = string.gsub(arg, "/", "\\")
-      else
-        projectpath = arg
-      end
-      M.switch_project(projectpath)
+      M.switch_project(arg)
     else
       vim.notify("Project not found")
     end
