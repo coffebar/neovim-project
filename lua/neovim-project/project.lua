@@ -187,6 +187,62 @@ M.create_commands = function()
       vim.notify("No recent projects")
     end
   end, { nargs = 0, count = true })
+
+  -- Open the project from the history by name
+  vim.api.nvim_create_user_command("NeovimProjectLoadHist", function(args)
+    local arg = args.args
+    local recentprojects = history.get_recent_projects()
+    local recent = {}
+    for _, v in ipairs(recentprojects) do
+      local val = string.gsub(v, "\\", "/")
+      table.insert(recent, val)
+    end
+
+    if vim.tbl_contains(recent, arg) then
+      M.switch_project(arg)
+    else
+      vim.notify("Project not found")
+    end
+  end, {
+    nargs = 1,
+    complete = function()
+      local recentprojects = history.get_recent_projects()
+      local recent = {}
+      for _, v in ipairs(recentprojects) do
+        local val = string.gsub(v, "\\", "/")
+        table.insert(recent, val)
+      end
+      return recent
+    end,
+  })
+
+  -- Open the project from all projects by name
+  vim.api.nvim_create_user_command("NeovimProjectLoad", function(args)
+    local arg = args.args
+    local allprojects = path.get_all_projects()
+    local projects = {}
+    for _, v in ipairs(allprojects) do
+      local val = string.gsub(v, "\\", "/")
+      table.insert(projects, val)
+    end
+
+    if vim.tbl_contains(projects, arg) then
+      M.switch_project(arg)
+    else
+      vim.notify("Project not found")
+    end
+  end, {
+    nargs = 1,
+    complete = function()
+      local projects = {}
+      local allprojects = path.get_all_projects()
+      for _, v in ipairs(allprojects) do
+        local val = string.gsub(v, "\\", "/")
+        table.insert(projects, val)
+      end
+      return projects
+    end,
+  })
 end
 
 M.switch_project = function(dir)
