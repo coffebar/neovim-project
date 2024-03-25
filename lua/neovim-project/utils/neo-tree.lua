@@ -67,21 +67,47 @@ M.get_state_as_lua_string = function()
     end
   end
 
-  if vim.tbl_count(restore) > 0 then
-    -- join all keys with a comma
-    local cwd = vim.loop.cwd()
-    local data = {}
-    for dir, _ in pairs(restore) do
-      if vim.startswith(dir, cwd) then -- path belongs to current project directory
-        dir = path_util.short_path(dir) -- short path for syncing
-        dir = vim.inspect(dir) -- wrap in quotes and escape special characters
+  if vim.tbl_count(restore) == 0 then
+    return "nil"
+  end
+  -- join all keys with a comma
+  local cwd = vim.loop.cwd()
+  local data = {}
+  for dir, _ in pairs(restore) do
+    if vim.startswith(dir, cwd) then -- path belongs to current project directory
+      dir = path_util.short_path(dir) -- short path for syncing
+      if vim.fn.isdirectory(vim.fn.expand(dir)) == 1 then
+        -- add only existing directories
         table.insert(data, dir)
       end
     end
-    return "{" .. table.concat(data, ",") .. "}"
-  else
+  end
+  if vim.tbl_count(data) == 0 then
     return "nil"
   end
+  -- clear table from values that are hidden in closed nodes
+  cwd = path_util.short_path(cwd)
+  local filtered_data = {}
+  for _, path in ipairs(data) do
+    local parent = path_util.short_path(vim.fn.fnamemodify(vim.fn.expand(path), ":h"))
+    local has_parent = parent == cwd
+    if not has_parent then
+      for _, p in ipairs(data) do
+        if p == parent then
+          has_parent = true
+          break
+        end
+      end
+    end
+    if has_parent then
+      path = vim.inspect(path) -- wrap in quotes and escape special characters
+      table.insert(filtered_data, path)
+    end
+  end
+  if vim.tbl_count(filtered_data) == 0 then
+    return "nil"
+  end
+  return "{" .. table.concat(filtered_data, ",") .. "}"
   -- output current state in command mode:
   -- lua print(require("neovim-project.utils.neo-tree").get_state_as_lua_string())
 end
