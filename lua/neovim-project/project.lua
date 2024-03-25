@@ -190,18 +190,22 @@ M.create_commands = function()
 
   -- Open the project from the history by name
   vim.api.nvim_create_user_command("NeovimProjectLoadHist", function(args)
-    local arg1 = args.args
-    local arg = arg1:gsub(" .*$", "")
-
+    local arg = args.args
     local recentprojects = history.get_recent_projects()
     local recent = {}
     for _, v in ipairs(recentprojects) do
-      local name = vim.fn.fnamemodify(v, ":t")
-      recent[name] = v
+      local val = string.gsub(v, "\\", "/")
+      table.insert(recent, val)
     end
 
-    if recent[arg] then
-      M.switch_project(recent[arg])
+    local projectpath = ""
+    if vim.tbl_contains(recent, arg) then
+      if vim.loop.os_uname().sysname == "Windows_NT" then
+        projectpath = string.gsub(arg, "/", "\\")
+      else
+        projectpath = arg
+      end
+      M.switch_project(projectpath)
     else
       vim.notify("Project not found")
     end
@@ -211,8 +215,8 @@ M.create_commands = function()
       local recentprojects = history.get_recent_projects()
       local recent = {}
       for _, v in ipairs(recentprojects) do
-        local name = vim.fn.fnamemodify(v, ":t") .. " (" .. v .. ")"
-        table.insert(recent, name)
+        local val = string.gsub(v, "\\", "/")
+        table.insert(recent, val)
       end
       return recent
     end,
@@ -225,13 +229,20 @@ M.create_commands = function()
 
     local allprojects = path.get_all_projects()
     local projects = {}
+
     for _, v in ipairs(allprojects) do
-      local name = vim.fn.fnamemodify(v, ":t")
-      projects[name] = v
+      local val = string.gsub(v, "\\", "/")
+      table.insert(projects, val)
     end
 
-    if projects[arg] then
-      M.switch_project(projects[arg])
+    local projectpath = ""
+    if vim.tbl_contains(projects, arg) then
+      if vim.loop.os_uname().sysname == "Windows_NT" then
+        projectpath = string.gsub(arg, "/", "\\")
+      else
+        projectpath = arg
+      end
+      M.switch_project(projectpath)
     else
       vim.notify("Project not found")
     end
@@ -241,8 +252,8 @@ M.create_commands = function()
       local projects = {}
       local allprojects = path.get_all_projects()
       for _, v in ipairs(allprojects) do
-        local name = vim.fn.fnamemodify(v, ":t") .. " (" .. v .. ")"
-        table.insert(projects, name)
+        local val = string.gsub(v, "\\", "/")
+        table.insert(projects, val)
       end
       return projects
     end,
