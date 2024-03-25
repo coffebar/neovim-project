@@ -190,7 +190,9 @@ M.create_commands = function()
 
   -- Open the project from the history by name
   vim.api.nvim_create_user_command("NeovimProjectLoadHist", function(args)
-    local arg = args.args
+    local arg1 = args.args
+    local arg = arg1:gsub(" .*$", "")
+
     local recentprojects = history.get_recent_projects()
     local recent = {}
     for _, v in ipairs(recentprojects) do
@@ -209,7 +211,7 @@ M.create_commands = function()
       local recentprojects = history.get_recent_projects()
       local recent = {}
       for _, v in ipairs(recentprojects) do
-        local name = vim.fn.fnamemodify(v, ":t")
+        local name = vim.fn.fnamemodify(v, ":t") .. " (" .. v .. ")"
         table.insert(recent, name)
       end
       return recent
@@ -218,7 +220,9 @@ M.create_commands = function()
 
   -- Open the project from all projects by name
   vim.api.nvim_create_user_command("NeovimProjectLoad", function(args)
-    local arg = args.args
+    local arg1 = args.args
+    local arg = arg1:gsub(" .*$", "")
+
     local allprojects = path.get_all_projects()
     local projects = {}
     for _, v in ipairs(allprojects) do
@@ -237,7 +241,7 @@ M.create_commands = function()
       local projects = {}
       local allprojects = path.get_all_projects()
       for _, v in ipairs(allprojects) do
-        local name = vim.fn.fnamemodify(v, ":t")
+        local name = vim.fn.fnamemodify(v, ":t") .. " (" .. v .. ")"
         table.insert(projects, name)
       end
       return projects
