@@ -5,6 +5,7 @@ local manager = require("session_manager")
 local path = require("neovim-project.utils.path")
 local payload = require("neovim-project.payload")
 local utils = require("session_manager.utils")
+local config = require("neovim-project.config")
 
 M.save_project_waiting = false
 
@@ -59,9 +60,11 @@ M.setup_autocmds = function()
     pattern = "SessionLoadPost",
     group = augroup,
     callback = function()
-      vim.defer_fn(function()
-        vim.api.nvim_command("silent! doautocmd FileType")
-      end, 200)
+      if config.options.filetype_autocmd_timeout > 0 then
+        vim.defer_fn(function()
+          vim.api.nvim_command("silent! doautocmd FileType")
+        end, config.options.filetype_autocmd_timeout)
+      end
       payload.load_post()
       if path.dir_pretty == nil then
         path.dir_pretty = path.cwd()
