@@ -96,8 +96,9 @@ M.fix_symlinks_for_history = function(dirs)
   -- Replace paths with paths from `projects` option
   local projects = M.get_all_projects()
   for i, dir in ipairs(dirs) do
+    local dir_resolved = M.resolve(dir)
     for _, path in ipairs(projects) do
-      if M.resolve(path) == M.resolve(dir) then
+      if M.resolve(path) == dir_resolved then
         dirs[i] = path
         break
       end
