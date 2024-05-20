@@ -38,9 +38,15 @@ function M.load_post()
   -- Must be called after session load
   if vim.g.NeovimProjectPayload__session_restore ~= nil then
     -- convert lua code string to table
-    local load = loadstring(vim.g.NeovimProjectPayload__session_restore)
-    if load ~= nil then
-      M.restore(load())
+    local load_func
+    if vim.fn.has("nvim-0.5") == 1 then
+      load_func = load(vim.g.NeovimProjectPayload__session_restore)
+    else
+      load_func = loadstring(vim.g.NeovimProjectPayload__session_restore)
+    end
+    -- local load_func = loadstring(vim.g.NeovimProjectPayload__session_restore)
+    if load_func ~= nil then
+      M.restore(load_func())
     end
     vim.g.NeovimProjectPayload__session_restore = nil -- clear global variable
   end
