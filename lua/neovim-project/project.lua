@@ -113,7 +113,7 @@ M.delete_session = function(dir)
 end
 
 M.in_session = function()
-  return utils.is_session
+  return utils.is_exist_in_session()
 end
 
 M.switch_after_save_session = function(dir)
