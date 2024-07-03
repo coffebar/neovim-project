@@ -67,8 +67,8 @@ M.setup = function(options)
     local cmd = require("neovim-project.utils.cmd")
     local is_man = cmd.check_open_cmd("+Man!")
 
-    if path.dir_matches_project() and not is_man then
-      -- nvim started in the project dir, open current dir session
+    if path.chdir_closest_parent_project() and not is_man then
+      -- nvim started in the project dir or sub project , open current dir session
       start_session_here = true
     else
       -- Open the recent session if not disabled from config
@@ -79,8 +79,7 @@ M.setup = function(options)
   end
 
   local open_path = path.resolve("%:p")
-  if open_path ~= nil and not M.options.dashboard_mode and path.dir_matches_project(open_path) then
-    vim.api.nvim_set_current_dir(open_path)
+  if open_path ~= nil and not M.options.dashboard_mode and path.chdir_closest_parent_project(open_path) then
     start_session_here = true
   end
 
