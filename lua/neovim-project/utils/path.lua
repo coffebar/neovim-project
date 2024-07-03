@@ -16,22 +16,18 @@ function M.init()
   M.homedir = vim.fn.expand("~")
 end
 
-local function normalize_path(path)
-  return vim.fn.fnamemodify(M.resolve(path), ":p"):gsub("/+$", "")
-end
-
 local function is_subdirectory(parent, sub)
-  parent = normalize_path(parent)
-  sub = normalize_path(sub)
+  parent = M.short_path(parent)
+  sub = M.short_path(sub)
   return sub:sub(1, #parent) == parent
 end
 
 local function find_closest_parent(directories, subdirectory)
   local closest_parent = nil
   local closest_length = 0
-  subdirectory = normalize_path(subdirectory)
+  subdirectory = M.short_path(subdirectory)
   for _, dir in ipairs(directories) do
-    dir = normalize_path(dir)
+    dir = M.short_path(dir)
     if is_subdirectory(dir, subdirectory) then
       local length = #dir
       if length > closest_length then
