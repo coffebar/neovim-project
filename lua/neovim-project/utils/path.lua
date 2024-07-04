@@ -16,17 +16,40 @@ function M.init()
   M.homedir = vim.fn.expand("~")
 end
 
-M.dir_matches_project = function(dir)
-  local dir_resolved = dir or M.resolve(M.cwd())
-  -- Check if current working directory mathch project patterns
-  local projects = M.get_all_projects()
-  for _, path in ipairs(projects) do
-    if M.resolve(path) == dir_resolved then
-      M.dir_pretty = M.short_path(path) -- store path with user defined symlinks
-      return true
+local function is_subdirectory(parent, sub)
+  parent = M.short_path(parent)
+  sub = M.short_path(sub)
+  return sub:sub(1, #parent) == parent
+end
+
+local function find_closest_parent(directories, subdirectory)
+  local closest_parent = nil
+  local closest_length = 0
+  subdirectory = M.short_path(subdirectory)
+  for _, dir in ipairs(directories) do
+    dir = M.short_path(dir)
+    if is_subdirectory(dir, subdirectory) then
+      local length = #dir
+      if length > closest_length then
+        closest_length = length
+        closest_parent = dir
+      end
     end
   end
-  return false
+  return closest_parent
+end
+
+M.chdir_closest_parent_project = function(dir)
+  -- returns the parent project and chdir to that parent
+  -- if no parent project returns nil
+  -- if dir is a project return dir
+  local dir_resolved = dir or M.resolve(M.cwd())
+  local parent = find_closest_parent(M.get_all_projects(), dir_resolved)
+  if parent then
+    M.dir_pretty = M.short_path(parent) -- store path with user defined symlinks
+    vim.api.nvim_set_current_dir(parent)
+  end
+  return parent
 end
 
 M.get_all_projects = function()
