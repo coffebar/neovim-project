@@ -40,6 +40,16 @@ M.defaults = {
     autosave_only_in_session = true,
     autosave_ignore_not_normal = false,
   },
+
+  -- Picker to use for project selection
+  -- Options: "builtin", "telescope", "fzf-lua"
+  -- Default to builtin if not specified or if the specified picker is not available
+  picker = {
+    type = "builtin", -- or "fzf-lua", "telescope"
+    opts = {
+      -- picker-specific options
+    },
+  },
 }
 
 ---@type ProjectOptions
@@ -68,7 +78,7 @@ M.setup = function(options)
     local is_man = cmd.check_open_cmd("+Man!")
 
     if
-      not is_man and (path.chdir_closest_parent_project() or path.chdir_closest_parent_project(path.resolve("%:p")))
+        not is_man and (path.chdir_closest_parent_project() or path.chdir_closest_parent_project(path.resolve("%:p")))
     then
       -- nvim started in the project dir or sub project , open current dir session
       start_session_here = true
@@ -84,9 +94,6 @@ M.setup = function(options)
 
   -- Session Manager setup
   require("session_manager").setup(M.options.session_manager_opts)
-
-  -- Register Telescope extension
-  require("telescope").load_extension("neovim-project")
 
   -- unset session_manager_opts
   ---@diagnostic disable-next-line: inject-field

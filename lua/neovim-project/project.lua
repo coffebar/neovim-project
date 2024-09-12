@@ -6,6 +6,7 @@ local path = require("neovim-project.utils.path")
 local payload = require("neovim-project.payload")
 local utils = require("session_manager.utils")
 local config = require("neovim-project.config")
+local picker = require("neovim-project.picker")
 
 M.save_project_waiting = false
 
@@ -97,6 +98,18 @@ M.setup_autocmds = function()
       end
     end,
   })
+end
+
+local function switch_project_callback(dir)
+  M.switch_project(dir)
+end
+
+function M.show_history()
+  picker.create_picker({}, false, switch_project_callback, M.delete_session)
+end
+
+function M.discover_projects()
+  picker.create_picker({}, true, switch_project_callback, M.delete_session)
 end
 
 M.delete_session = function(dir)
@@ -246,6 +259,14 @@ M.create_commands = function()
       return projects
     end,
   })
+
+  vim.api.nvim_create_user_command("NeovimProjectHistory", function(args)
+    picker.create_picker(args, false, M.switch_project)
+  end, {})
+
+  vim.api.nvim_create_user_command("NeovimProjectDiscover", function(args)
+    picker.create_picker(args, true, M.switch_project)
+  end, {})
 end
 
 M.switch_project = function(dir)
