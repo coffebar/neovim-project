@@ -37,7 +37,7 @@ You can install the plugin using your preferred package manager.
       "~/.config/*",
     },
     picker = {
-      type = "telescope", -- or "fzf-lua", "builtin"
+      type = "telescope", -- or "fzf-lua"
     }
   },
   init = function()
@@ -74,7 +74,7 @@ use({
         "~/.config/*",
       },
       picker = {
-        type = "telescope", -- or "fzf-lua", "builtin"
+        type = "telescope", -- or "fzf-lua"
       }
     }
   end,
@@ -106,7 +106,7 @@ use({
         "~/.config/*",
       },
       picker = {
-        type = "telescope", -- or "fzf-lua", "builtin"
+        type = "telescope", -- or "fzf-lua"
       }
     }
   end,
@@ -164,10 +164,10 @@ use({
     },
   },
   -- Picker to use for project selection
-  -- Options: "builtin", "telescope", "fzf-lua"
-  -- Default to builtin if not specified or if the specified picker is not available
+  -- Options: telescope", "fzf-lua"
+  -- Default to builtin select ui if not specified or if the specified picker is not available
   picker = {
-    type = "builtin", -- or "fzf-lua", "telescope"
+    type = "telescope", -- or "fzf-lua"
     opts = {
       -- picker-specific options
     },
