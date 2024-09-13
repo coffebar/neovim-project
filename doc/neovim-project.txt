@@ -180,8 +180,8 @@ DEFAULT OPTIONS: ~
         },
       },
       -- Picker to use for project selection
-      -- Options: telescope", "fzf-lua"
-      -- Default to builtin select ui if not specified or if the specified picker is not available
+      -- Options: "telescope", "fzf-lua"
+      -- Fallback to builtin select ui if the specified picker is not available
       picker = {
         type = "telescope", -- or "fzf-lua"
         opts = {
