@@ -7,6 +7,7 @@
 - ✅ Sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
 - ✅ Find all your projects by glob patterns defined in config.
 - ✅ Autosave **neo-tree.nvim** expanded directories and buffers order in **barbar.nvim**.
+- ✅ Choose your favorite picker.
 
 ![Neovim project manager plugin dracula theme](https://github.com/coffebar/neovim-project/assets/3100053/b75e9373-d694-48e4-abbf-3abfe98ae46f)
 
