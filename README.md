@@ -1,6 +1,6 @@
 # 🗃️ Neovim project manager plugin
 
-**Neovim project** plugin simplifies project management by maintaining project history and providing quick access to saved sessions via [Telescope](https://github.com/nvim-telescope/telescope.nvim). It runs on top of the [Neovim Session Manager](https://github.com/Shatur/neovim-session-manager), which is needed to store all open tabs and buffers for each project.
+**Neovim project** plugin simplifies project management by maintaining project history and providing quick access to saved sessions via [Telescope](https://github.com/nvim-telescope/telescope.nvim) or [fzf-lua](https://github.com/ibhagwan/fzf-lua). It runs on top of the [Neovim Session Manager](https://github.com/Shatur/neovim-session-manager), which is needed to store all open tabs and buffers for each project.
 
 - ✅ Start where you left off last time.
 - ✅ Switch from project to project in second.
@@ -21,7 +21,7 @@
 3. Open files inside the project and work.
 4. The session will be saved before closing Neovim or switching to another project via [commands](#commands).
 5. Open Neovim in any non-project directory and the latest session will be loaded.
-   
+
 ## 📦 Installation
 
 You can install the plugin using your preferred package manager.
@@ -36,6 +36,9 @@ You can install the plugin using your preferred package manager.
       "~/projects/*",
       "~/.config/*",
     },
+    picker = {
+      type = "telescope", -- or "fzf-lua"
+    }
   },
   init = function()
     -- enable saving the state of plugins in the session
@@ -43,7 +46,10 @@ You can install the plugin using your preferred package manager.
   end,
   dependencies = {
     { "nvim-lua/plenary.nvim" },
+    -- optional picker
     { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
+    -- optional picker
+    { "ibhagwan/fzf-lua" },
     { "Shatur/neovim-session-manager" },
   },
   lazy = false,
@@ -67,11 +73,17 @@ use({
         "~/projects/*",
         "~/.config/*",
       },
+      picker = {
+        type = "telescope", -- or "fzf-lua"
+      }
     }
   end,
   requires = {
     { "nvim-lua/plenary.nvim" },
+    -- optional picker
     { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
+    -- optional picker
+    { "ibhagwan/fzf-lua" },
     { "Shatur/neovim-session-manager" },
   }
 })
@@ -93,11 +105,17 @@ use({
         "~/projects/*",
         "~/.config/*",
       },
+      picker = {
+        type = "telescope", -- or "fzf-lua"
+      }
     }
   end,
   requires = {
     { "nvim-lua/plenary.nvim" },
+    -- optional picker
     { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
+    -- optional picker
+    { "ibhagwan/fzf-lua" },
     { "Shatur/neovim-session-manager" },
   }
 };
@@ -145,6 +163,15 @@ use({
       "toggleterm",
     },
   },
+  -- Picker to use for project selection
+  -- Options: telescope", "fzf-lua"
+  -- Default to builtin select ui if not specified or if the specified picker is not available
+  picker = {
+    type = "telescope", -- or "fzf-lua"
+    opts = {
+      -- picker-specific options
+    },
+  },
 }
 ```
 
@@ -152,9 +179,9 @@ use({
 
 Neovim project manager will add these commands:
 
-- `:Telescope neovim-project discover` - find a project based on patterns.
+- `:NeovimProjectDiscover` - find a project based on patterns.
 
-- `:Telescope neovim-project history` - select a project from your recent history.
+- `:NeovimProjectHistory` - select a project from your recent history.
 
 - `:NeovimProjectLoadRecent` - open the previous session.
 
@@ -164,13 +191,15 @@ Neovim project manager will add these commands:
 
 History is sorted by access time. "Discover" keeps order as you have in the config.
 
-#### Telescope mappings
+#### Mappings
 
-Use `Ctrl+d` in Telescope to delete the project's session and remove it from the history.
+Use `Ctrl+d` in Telescope / fzf-lua to delete the project's session and remove it from the history.
 
 ## ⚡ Requirements
 
 - Neovim >= 0.8.0
+- Optional: Telescope.nvim for the Telescope picker
+- Optional: fzf-lua for the fzf-lua picker
 
 ## Demo video
 
@@ -186,7 +215,6 @@ So when you need to edit Neovim config, you open project `~/.config/nvim` by typ
 Of course, you want to use vim-fugitive and gitsigns in these projects. And it should be a single git repo for dotfiles. By default, Neovim will know nothing about your dotfiles repo.
 
 Create autocommands to update env variables to tell Neovim where is your dotfiles bare repo. Here is an example from my dotfiles:
-
 
 ```lua
 local augroup = vim.api.nvim_create_augroup("user_cmds", { clear = true })
