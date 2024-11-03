@@ -106,8 +106,13 @@ local function project_history(opts)
       previewer = false,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr, map)
-        map("n", "d", delete_project)
-        map("i", "<c-d>", delete_project)
+        local config = require("neovim-project.config")
+        local forget_project_keys = config.options.forget_project_keys
+        if forget_project_keys then
+          for mode, key in pairs(forget_project_keys) do
+            map(mode, key, delete_project)
+          end
+        end
 
         local on_project_selected = function()
           change_working_directory(prompt_bufnr)
