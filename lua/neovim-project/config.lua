@@ -20,6 +20,13 @@ M.defaults = {
   -- to make sure lsp servers are attached to the current buffer.
   -- Set to 0 to disable triggering FileType autocmd
   filetype_autocmd_timeout = 200,
+  -- Keymap to delete project from history in Telescope picker
+  forget_project_keys = {
+    -- insert mode
+    i = "<C-d>",
+    -- normal mode
+    n = "d",
+  },
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {
