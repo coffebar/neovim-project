@@ -59,7 +59,7 @@ M.get_all_projects = function()
   for _, pattern in ipairs(patterns) do
     local tbl = vim.fn.glob(pattern, true, true, true)
     for _, path in ipairs(tbl) do
-      if vim.fn.isdirectory(path) == 1 then
+      if vim.fn.isdirectory(path) == 1 and not vim.tbl_contains(projects, path) then
         table.insert(projects, M.short_path(path))
       end
     end
