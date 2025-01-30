@@ -33,11 +33,11 @@ local function after_render()
       -- probably, neo-tree is opened with another source
       return
     end
-    if state.explicitly_opened_directories == nil then
-      state.explicitly_opened_directories = {}
+    if state.explicitly_opened_nodes == nil then
+      state.explicitly_opened_nodes = {}
     end
     local dir = table.remove(M.dirs_to_restore, 1)
-    state.explicitly_opened_directories[dir] = true
+    state.explicitly_opened_nodes[dir] = true
     local node = nui_tree:get_node(dir)
     if node ~= nil then
       node:expand()
@@ -51,17 +51,18 @@ M.get_state_as_lua_string = function()
   -- Returns a string that can be used in lua code as value (table or nil)
   -- Value is a table of paths that were explicitly opened in neo-tree
   local state = filesystem_state()
-  -- create table dirs_to_restore from state.explicitly_opened_directories and M.dirs_to_restore
+  -- create table dirs_to_restore from state.explicitly_opened_nodes and M.dirs_to_restore
   local restore = {}
 
-  if M.dirs_to_restore ~= nil then
-    for _, path in ipairs(M.dirs_to_restore) do
-      restore[path] = true
-    end
-  end
-  if state ~= nil and state.explicitly_opened_directories ~= nil then
-    for path, opened in pairs(state.explicitly_opened_directories) do
+  if state ~= nil and state.explicitly_opened_nodes ~= nil then
+    for path, opened in pairs(state.explicitly_opened_nodes) do
       if opened then
+        restore[path] = true
+      end
+    end
+  else
+    if M.dirs_to_restore ~= nil then
+      for _, path in ipairs(M.dirs_to_restore) do
         restore[path] = true
       end
     end
