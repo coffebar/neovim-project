@@ -218,7 +218,7 @@ Use `Ctrl+d` in Telescope / fzf-lua to delete the project's session and remove i
 
 ⚡ REQUIREMENTS*neovim-project-🗃️-neovim-project-manager-plugin-⚡-requirements*
 
-- Neovim >= 0.8.0
+- Neovim >= 0.10.0
 - Optional: Telescope.nvim for the Telescope picker
 - Optional: fzf-lua for the fzf-lua picker
 
