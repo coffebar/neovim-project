@@ -1,4 +1,4 @@
-*neovim-project.txt*             For              Last change: 2023 October 25
+*neovim-project.txt*             For              Last change: 2025 February 3
 
 ==============================================================================
 Table of Contents                           *neovim-project-table-of-contents*
