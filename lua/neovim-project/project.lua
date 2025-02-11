@@ -260,6 +260,10 @@ M.create_commands = function()
     end,
   })
 
+  vim.api.nvim_create_user_command("NeovimProjectAllHistory", function(args)
+    picker.create_picker(args, "all_history", M.switch_project)
+  end, {})
+
   vim.api.nvim_create_user_command("NeovimProjectHistory", function(args)
     picker.create_picker(args, false, M.switch_project)
   end, {})

@@ -18,7 +18,9 @@ end
 
 function M.create_telescope_picker(opts, discover)
   local telescope = require("telescope")
-  if discover then
+  if discover == "all_history" then
+    return telescope.extensions["neovim-project"].all_history(opts)
+  elseif discover then
     return telescope.extensions["neovim-project"].discover(opts)
   else
     return telescope.extensions["neovim-project"].history(opts)

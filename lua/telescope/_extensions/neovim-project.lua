@@ -21,7 +21,33 @@ local project = require("neovim-project.project")
 
 local function create_finder(discover)
   local results
-  if discover then
+  if discover == "all_history" then
+    local seen = {}
+    local recent = history.get_recent_projects()
+    recent = path.fix_symlinks_for_history(recent)
+
+    -- Reverse projects
+    for i = 1, math.floor(#recent / 2) do
+      recent[i], recent[#recent - i + 1] = recent[#recent - i + 1], recent[i]
+    end
+
+    -- Add recent projects first
+    results = {}
+    for _, proj in ipairs(recent) do
+      if not seen[proj] then
+        table.insert(results, proj)
+        seen[proj] = true
+      end
+    end
+
+    -- Add all projects, ensuring no duplicates
+    for _, proj in ipairs(path.get_all_projects()) do
+      if not seen[proj] then
+        table.insert(results, proj)
+        seen[proj] = true
+     end
+    end
+  elseif discover then
     results = path.get_all_projects()
   else
     results = history.get_recent_projects()
@@ -125,6 +151,35 @@ local function project_history(opts)
 end
 
 ---@param opts table
+local function project_all_history(opts)
+  opts = opts or {}
+
+  pickers
+    .new(opts, {
+      prompt_title = "Recent Projects",
+      finder = create_finder("all_history"),
+      previewer = false,
+      sorter = telescope_config.generic_sorter(opts),
+      attach_mappings = function(prompt_bufnr, map)
+        local config = require("neovim-project.config")
+        local forget_project_keys = config.options.forget_project_keys
+        if forget_project_keys then
+          for mode, key in pairs(forget_project_keys) do
+            map(mode, key, delete_project)
+          end
+        end
+
+        local on_project_selected = function()
+          change_working_directory(prompt_bufnr)
+        end
+        actions.select_default:replace(on_project_selected)
+        return true
+      end,
+    })
+    :find()
+end
+
+---@param opts table
 local function project_discover(opts)
   opts = opts or {}
 
@@ -149,5 +204,6 @@ return telescope.register_extension({
     ["neovim-project"] = project_history,
     history = project_history,
     discover = project_discover,
+    all_history = project_all_history,
   },
 })
