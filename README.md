@@ -191,6 +191,8 @@ Neovim project manager will add these commands:
 
 - `:NeovimProjectHistory` - select a project from your recent history.
 
+- `:NeovimProjectAllHistory` - select a project based on patterns and recent history.
+
 - `:NeovimProjectLoadRecent` - open the previous session.
 
 - `:NeovimProjectLoadHist` - opens the project from the history providing a project dir.
