@@ -30,13 +30,14 @@ local function create_finder(discover)
       recent[i], recent[#recent - i + 1] = recent[#recent - i + 1], recent[i]
     end
 
+    -- Add all projects and prioritise history
     local seen = {}
     results = {}
     for _, proj in ipairs(vim.list_extend(recent, path.get_all_projects())) do
-        if not seen[proj] then
-            table.insert(results, proj)
-            seen[proj] = true
-        end
+      if not seen[proj] then
+        table.insert(results, proj)
+        seen[proj] = true
+      end
     end
   elseif discover then
     results = path.get_all_projects()
