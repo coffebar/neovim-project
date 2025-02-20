@@ -31,7 +31,25 @@ function M.create_fzf_lua_picker(opts, discover, callback, delete_session_func)
   local fzf = require("fzf-lua")
 
   local results
-  if discover then
+  if discover == "all_history" then
+    local recent = history.get_recent_projects()
+    recent = path.fix_symlinks_for_history(recent)
+
+    -- Reverse projects
+    for i = 1, math.floor(#recent / 2) do
+      recent[i], recent[#recent - i + 1] = recent[#recent - i + 1], recent[i]
+    end
+
+    -- Add all projects and prioritise history
+    local seen = {}
+    results = {}
+    for _, proj in ipairs(vim.list_extend(recent, path.get_all_projects())) do
+      if not seen[proj] then
+        table.insert(results, proj)
+        seen[proj] = true
+      end
+    end
+  elseif discover then
     results = path.get_all_projects()
   else
     results = history.get_recent_projects()
@@ -87,7 +105,25 @@ end
 
 function M.create_builtin_picker(opts, discover, callback, delete_session_func)
   local results
-  if discover then
+  if discover == "all_history" then
+    local recent = history.get_recent_projects()
+    recent = path.fix_symlinks_for_history(recent)
+
+    -- Reverse projects
+    for i = 1, math.floor(#recent / 2) do
+      recent[i], recent[#recent - i + 1] = recent[#recent - i + 1], recent[i]
+    end
+
+    -- Add all projects and prioritise history
+    local seen = {}
+    results = {}
+    for _, proj in ipairs(vim.list_extend(recent, path.get_all_projects())) do
+      if not seen[proj] then
+        table.insert(results, proj)
+        seen[proj] = true
+      end
+    end
+  elseif discover then
     results = path.get_all_projects()
   else
     results = history.get_recent_projects()
