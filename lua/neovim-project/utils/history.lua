@@ -116,6 +116,28 @@ function M.get_recent_projects()
   return sanitize_projects()
 end
 
+function M.get_all_history()
+  local recent = M.get_recent_projects()
+  recent = path.fix_symlinks_for_history(recent)
+
+  -- Reverse projects
+  for i = 1, math.floor(#recent / 2) do
+    recent[i], recent[#recent - i + 1] = recent[#recent - i + 1], recent[i]
+  end
+
+  -- Add all projects and prioritise history
+  local seen = {}
+  local results = {}
+  for _, proj in ipairs(vim.list_extend(recent, path.get_all_projects())) do
+    if not seen[proj] then
+      table.insert(results, proj)
+      seen[proj] = true
+    end
+  end
+
+  return results
+end
+
 function M.make_sure_read_projects_from_history()
   if M.history_read == false then
     M.read_projects_from_history()
