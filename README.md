@@ -197,7 +197,7 @@ Neovim project manager will add these commands:
 
 - `:NeovimProjectLoad` - opens the project from all your projects providing a project dir.
 
-History is sorted by access time. "Discover" keeps order as you have in the config.
+History is sorted by access time. "Discover" keeps order as you have in the config, if `history` is provided as an extra argument it will prioritise the most recent projects first.
 
 #### Mappings
 

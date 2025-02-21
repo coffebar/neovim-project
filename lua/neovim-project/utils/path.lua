@@ -70,6 +70,36 @@ M.get_all_projects = function()
   return projects
 end
 
+M.get_all_projects_with_sorting = function()
+  -- Get all projects but with specific sorting
+  local sorting = require("neovim-project.config").options.picker.opts.sorting
+
+  -- Sort by most recent projects first
+  if sorting == "history" then
+    local recent = require("neovim-project.utils.history").get_recent_projects()
+    recent = M.fix_symlinks_for_history(recent)
+
+    -- Reverse projects
+    for i = 1, math.floor(#recent / 2) do
+      recent[i], recent[#recent - i + 1] = recent[#recent - i + 1], recent[i]
+    end
+
+    -- Add all projects and prioritise history
+    local seen, projects = {}, {}
+    for _, project in ipairs(vim.list_extend(recent, M.get_all_projects())) do
+      if not seen[project] then
+        table.insert(projects, project)
+        seen[project] = true
+      end
+    end
+    return projects
+
+  -- Default sort alphabetically
+  else
+    return M.get_all_projects()
+  end
+end
+
 M.short_path = function(path)
   -- Reduce file name to be relative to the home directory, if possible.
   path = M.resolve(path)

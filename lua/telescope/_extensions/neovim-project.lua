@@ -22,7 +22,7 @@ local project = require("neovim-project.project")
 local function create_finder(discover)
   local results
   if discover then
-    results = path.get_all_projects()
+    results = path.get_all_projects_with_sorting()
   else
     results = history.get_recent_projects()
     results = path.fix_symlinks_for_history(results)
