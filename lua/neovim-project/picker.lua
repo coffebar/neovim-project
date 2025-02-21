@@ -30,7 +30,7 @@ function M.create_fzf_lua_picker(opts, discover, callback, delete_session_func)
 
   local results
   if discover then
-    results = path.get_all_projects()
+    results = path.get_all_projects_with_sorting()
   else
     results = history.get_recent_projects()
     results = path.fix_symlinks_for_history(results)
@@ -86,7 +86,7 @@ end
 function M.create_builtin_picker(opts, discover, callback, delete_session_func)
   local results
   if discover then
-    results = path.get_all_projects()
+    results = path.get_all_projects_with_sorting()
   else
     results = history.get_recent_projects()
     results = path.fix_symlinks_for_history(results)
