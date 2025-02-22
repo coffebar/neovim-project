@@ -73,6 +73,7 @@ end
 M.get_all_projects_with_sorting = function()
   -- Get all projects but with specific sorting
   local sorting = require("neovim-project.config").options.picker.opts.sorting
+  local all_projects = M.get_all_projects()
 
   -- Sort by most recent projects first
   if sorting == "history" then
@@ -86,7 +87,7 @@ M.get_all_projects_with_sorting = function()
 
     -- Add all projects and prioritise history
     local seen, projects = {}, {}
-    for _, project in ipairs(vim.list_extend(recent, M.get_all_projects())) do
+    for _, project in ipairs(vim.list_extend(recent, all_projects)) do
       if not seen[project] then
         table.insert(projects, project)
         seen[project] = true
@@ -94,9 +95,23 @@ M.get_all_projects_with_sorting = function()
     end
     return projects
 
-  -- Default sort alphabetically
+  -- Sort alphabetically ascending by project name
+  elseif sorting == "alphabetical_name" then
+    table.sort(all_projects, function(a, b)
+      local name_a = a:match(".*/([^/]+)$") or a
+      local name_b = b:match(".*/([^/]+)$") or b
+      return name_a:lower() < name_b:lower()
+    end)
+    return all_projects
+
+  -- Sort alphabetically ascending by project path
+  elseif sorting == "alphabetical_path" then
+    table.sort(all_projects)
+    return all_projects
+
+  -- Default sort based on patterns
   else
-    return M.get_all_projects()
+    return all_projects
   end
 end
 
