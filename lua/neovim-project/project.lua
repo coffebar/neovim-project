@@ -265,13 +265,13 @@ M.create_commands = function()
   end, {})
 
   vim.api.nvim_create_user_command("NeovimProjectDiscover", function(args)
-    -- Default sorting to be alphabetical ascending
-    config.options.picker.opts.sorting = args.args or "alphabetical"
+    -- Default sorting based on patterns
+    config.options.picker.opts.sorting = args.args or "default"
     picker.create_picker(args, true, M.switch_project)
     end, {
       nargs = "?",
       complete = function()
-        return { "alphabetical", "history" }
+        return { "default", "history", "alphabetical_name", "alphabetical_path" }
     end,
   })
 end

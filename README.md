@@ -187,7 +187,11 @@ use({
 
 Neovim project manager will add these commands:
 
-- `:NeovimProjectDiscover` - find a project based on patterns.
+- `:NeovimProjectDiscover [sort]` - find a project based on patterns, with optional sorting arguments:
+  - `default` (or no argument) - uses the order specified in the config.
+  - `history` - prioritises the most recently accessed projects.
+  - `alphabetical_name` - sorts projects alphabetically by project name.
+  - `alphabetical_path` - sorts projects alphabetically by their full path.
 
 - `:NeovimProjectHistory` - select a project from your recent history.
 
@@ -197,7 +201,7 @@ Neovim project manager will add these commands:
 
 - `:NeovimProjectLoad` - opens the project from all your projects providing a project dir.
 
-History is sorted by access time. "Discover" keeps order as you have in the config, if `history` is provided as an extra argument it will prioritise the most recent projects first.
+History is sorted by access time. "Discover" keeps order as you have in the config, but can be overridden using the sorting options.
 
 #### Mappings
 
