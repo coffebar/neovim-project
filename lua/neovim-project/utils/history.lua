@@ -116,6 +116,14 @@ function M.get_recent_projects()
   return sanitize_projects()
 end
 
+function M.get_most_recent_project()
+  local projects = M.get_recent_projects()
+  if #projects > 0 then
+    return projects[#projects]
+  end
+  return nil
+end
+
 function M.make_sure_read_projects_from_history()
   if M.history_read == false then
     M.read_projects_from_history()

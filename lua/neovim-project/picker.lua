@@ -1,11 +1,15 @@
 local M = {}
 local config = require("neovim-project.config")
 local path = require("neovim-project.utils.path")
+local git_status = require("neovim-project.utils.git-status")
 local history = require("neovim-project.utils.history")
 
 function M.create_picker(opts, discover, callback, delete_session_func)
   local picker = config.options.picker.type
   local picker_opts = vim.tbl_deep_extend("force", config.options.picker.opts or {}, opts or {})
+
+  local current_project = history.get_most_recent_project()
+  git_status.update_status(current_project)
 
   if picker == "telescope" and pcall(require, "telescope") then
     return M.create_telescope_picker(picker_opts, discover)
