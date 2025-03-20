@@ -12,6 +12,7 @@ local state = require("telescope.actions.state")
 local entry_display = require("telescope.pickers.entry_display")
 
 local path = require("neovim-project.utils.path")
+local git_status = require("neovim-project.utils.git-status")
 local history = require("neovim-project.utils.history")
 local project = require("neovim-project.project")
 
@@ -32,19 +33,23 @@ local function create_finder(discover)
     end
   end
 
-  local displayer = entry_display.create({
-    separator = " ",
-    items = {
-      {
-        width = 30,
-      },
-      {
-        remaining = true,
-      },
-    },
-  })
-
   local function make_display(entry)
+    local separator = "  "
+    local uncommitted = git_status.check_uncommitted(entry.value)
+    if uncommitted then
+      separator = "* "
+    end
+    local displayer = entry_display.create({
+      separator = separator,
+      items = {
+        {
+          width = 30,
+        },
+        {
+          remaining = true,
+        },
+      },
+    })
     return displayer({ entry.name, { entry.value, "Comment" } })
   end
 
