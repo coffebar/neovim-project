@@ -71,6 +71,8 @@ M.setup = function(options)
   path.init()
   local project = require("neovim-project.project")
   project.init()
+  local git_status = require("neovim-project.utils.git-status")
+  git_status.init(path.get_all_projects())
 
   local start_session_here = false -- open or create session in current dir
 

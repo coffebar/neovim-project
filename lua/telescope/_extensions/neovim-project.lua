@@ -35,7 +35,7 @@ local function create_finder(discover)
 
   local function make_display(entry)
     local separator = "  "
-    local uncommitted = git_status.check_uncommitted(entry.value)
+    local uncommitted = git_status.get_status(entry.value)
     if uncommitted then
       separator = "* "
     end
