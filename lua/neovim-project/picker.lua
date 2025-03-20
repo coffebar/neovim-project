@@ -8,8 +8,10 @@ function M.create_picker(opts, discover, callback, delete_session_func)
   local picker = config.options.picker.type
   local picker_opts = vim.tbl_deep_extend("force", config.options.picker.opts or {}, opts or {})
 
-  local current_project = history.get_most_recent_project()
-  git_status.update_status(current_project)
+  if config.options.git_status then
+    local current_project = history.get_most_recent_project()
+    git_status.update_status(current_project)
+  end
 
   if picker == "telescope" and pcall(require, "telescope") then
     return M.create_telescope_picker(picker_opts, discover)
@@ -46,7 +48,15 @@ function M.create_fzf_lua_picker(opts, discover, callback, delete_session_func)
 
   local function format_entry(entry)
     local name = vim.fn.fnamemodify(entry, ":t")
-    return string.format("%s\t%s", name, entry)
+
+    local green = "\x1b[32m"
+    local reset = "\x1b[0m"
+    local status_indicator = ""
+    if config.options.git_status and git_status.get_status(entry) then
+      status_indicator = " " .. green .. "●" .. reset
+    end
+
+    return string.format("%s%s\t%s", name, reset .. status_indicator, entry)
   end
 
   local formatted_results = vim.tbl_map(format_entry, results)
@@ -103,7 +113,14 @@ function M.create_builtin_picker(opts, discover, callback, delete_session_func)
   local default_opts = {
     prompt = discover and "Discover Projects" or "Recent Projects",
     format_item = function(item)
-      return vim.fn.fnamemodify(item, ":t") .. " (" .. item .. ")"
+      local name = vim.fn.fnamemodify(item, ":t")
+      local status_indicator = ""
+
+      if config.options.git_status and git_status.get_status(item) then
+        status_indicator = " ●"
+      end
+
+      return name .. " (" .. item .. ")" .. status_indicator
     end,
   }
 

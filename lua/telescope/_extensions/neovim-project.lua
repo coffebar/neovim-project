@@ -15,7 +15,7 @@ local path = require("neovim-project.utils.path")
 local git_status = require("neovim-project.utils.git-status")
 local history = require("neovim-project.utils.history")
 local project = require("neovim-project.project")
-
+local config = require("neovim-project.config")
 ----------
 -- Actions
 ----------
@@ -33,23 +33,29 @@ local function create_finder(discover)
     end
   end
 
-  local function make_display(entry)
-    local separator = "  "
-    local uncommitted = git_status.get_status(entry.value)
-    if uncommitted then
-      separator = "* "
-    end
-    local displayer = entry_display.create({
-      separator = separator,
-      items = {
-        {
-          width = 30,
-        },
-        {
-          remaining = true,
-        },
+  local displayer_config = {
+    separator = " ",
+    items = {
+      {
+        width = 30,
       },
-    })
+      {
+        remaining = true,
+      },
+    },
+  }
+
+  local function make_display(entry)
+    if config.options.git_status then
+      local uncommitted = git_status.get_status(entry.value)
+      if uncommitted then
+        displayer_config.separator = "* "
+      else
+        displayer_config.separator = "  "
+      end
+    end
+
+    local displayer = entry_display.create(displayer_config)
     return displayer({ entry.name, { entry.value, "Comment" } })
   end
 

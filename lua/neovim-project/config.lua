@@ -57,6 +57,9 @@ M.defaults = {
       -- picker-specific options
     },
   },
+
+  -- Display a mark if a project has uncommitted changes. Adds slight delay when booting nvim, runs a git command an all repos during init.
+  git_status = false,
 }
 
 ---@type ProjectOptions
@@ -71,8 +74,11 @@ M.setup = function(options)
   path.init()
   local project = require("neovim-project.project")
   project.init()
-  local git_status = require("neovim-project.utils.git-status")
-  git_status.init(path.get_all_projects())
+
+  if M.options.git_status then
+    local git_status = require("neovim-project.utils.git-status")
+    git_status.init(path.get_all_projects())
+  end
 
   local start_session_here = false -- open or create session in current dir
 
