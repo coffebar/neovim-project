@@ -180,6 +180,9 @@ use({
       -- picker-specific options
     },
   },
+  
+  -- Display a mark if a project has uncommitted changes.
+  git_status = false,
 }
 ```
 

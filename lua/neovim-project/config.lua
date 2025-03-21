@@ -58,7 +58,7 @@ M.defaults = {
     },
   },
 
-  -- Display a mark if a project has uncommitted changes. Adds slight delay when booting nvim, runs a git command an all repos during init.
+  -- Display a mark if a project has uncommitted changes.
   git_status = false,
 }
 
