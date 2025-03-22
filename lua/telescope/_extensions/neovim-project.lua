@@ -10,12 +10,62 @@ local telescope_config = require("telescope.config").values
 local actions = require("telescope.actions")
 local state = require("telescope.actions.state")
 local entry_display = require("telescope.pickers.entry_display")
+local previewers = require("telescope.previewers")
 
 local path = require("neovim-project.utils.path")
 local git_status = require("neovim-project.utils.git-status")
 local history = require("neovim-project.utils.history")
 local project = require("neovim-project.project")
 local config = require("neovim-project.config")
+
+-- Custom previewer that shows a clean directory listing
+local project_previewer = previewers.new_buffer_previewer({
+  title = "Project Preview",
+  define_preview = function(self, entry, status)
+    local project_path = vim.fn.expand(entry.value)
+
+    -- Check if the directory exists
+    if vim.fn.isdirectory(project_path) == 0 then
+      vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, { "Directory not found: " .. project_path })
+      return
+    end
+
+    -- Get directory contents
+    local items = vim.fn.readdir(project_path)
+    table.sort(items, function(a, b)
+      local a_is_dir = vim.fn.isdirectory(project_path .. "/" .. a) == 1
+      local b_is_dir = vim.fn.isdirectory(project_path .. "/" .. b) == 1
+
+      -- Directories first, then alphabetical
+      if a_is_dir and not b_is_dir then
+        return true
+      elseif not a_is_dir and b_is_dir then
+        return false
+      else
+        return a < b
+      end
+    end)
+
+    -- Format the output
+    local output = {}
+    table.insert(output, "")
+
+    for _, item in ipairs(items) do
+      -- Skip hidden files starting with .
+      if not item:match("^%.") then
+        local is_dir = vim.fn.isdirectory(project_path .. "/" .. item) == 1
+        if is_dir then
+          table.insert(output, "  📁 " .. item .. "/")
+        else
+          table.insert(output, "  📄 " .. item)
+        end
+      end
+    end
+
+    -- Display the output
+    vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, output)
+  end,
+})
 ----------
 -- Actions
 ----------
@@ -114,7 +164,7 @@ local function project_history(opts)
     .new(opts, {
       prompt_title = "Recent Projects",
       finder = create_finder(false),
-      previewer = false,
+      previewer = project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr, map)
         local config = require("neovim-project.config")
@@ -143,7 +193,7 @@ local function project_discover(opts)
     .new(opts, {
       prompt_title = "Discover Projects",
       finder = create_finder(true),
-      previewer = false,
+      previewer = project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr)
         local on_project_selected = function()
