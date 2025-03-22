@@ -117,7 +117,7 @@ function M.create_builtin_picker(opts, discover, callback, delete_session_func)
       local status_indicator = ""
 
       if config.options.git_status and git_status.get_status(item) then
-        status_indicator = " ●"
+        status_indicator = " *"
       end
 
       return name .. " (" .. item .. ")" .. status_indicator
