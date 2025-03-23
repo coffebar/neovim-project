@@ -291,4 +291,4 @@ This code should be required from your `init.lua` before plugins.
 
 - Open a ticket if you want integration with another plugin, or if you want to request a new feature.
 - If you encounter bugs please open an issue.
-- Pull requests are welcome.
+- Pull requests are welcome. Follow the Conventional Commits specification for commit naming.
