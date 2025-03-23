@@ -117,7 +117,7 @@ local function project_history(opts)
     .new(opts, {
       prompt_title = "Recent Projects",
       finder = create_finder(false),
-      previewer = preview.project_previewer,
+      previewer = config.options.picker.preview and preview.project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr, map)
         local config = require("neovim-project.config")
@@ -146,7 +146,7 @@ local function project_discover(opts)
     .new(opts, {
       prompt_title = "Discover Projects",
       finder = create_finder(true),
-      previewer = preview.project_previewer,
+      previewer = config.options.picker.preview and preview.project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr)
         local on_project_selected = function()

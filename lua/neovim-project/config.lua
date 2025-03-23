@@ -56,11 +56,7 @@ M.defaults = {
     opts = {
       -- picker-specific options
     },
-    preview = {
-      enabled = false,
-      files = false,
-      git_status = false,
-    },
+    preview = false,
   },
 
   -- Display a mark if a project has uncommitted changes.
