@@ -10,14 +10,13 @@ local telescope_config = require("telescope.config").values
 local actions = require("telescope.actions")
 local state = require("telescope.actions.state")
 local entry_display = require("telescope.pickers.entry_display")
-local previewers = require("telescope.previewers")
 
 local path = require("neovim-project.utils.path")
-local git_status = require("neovim-project.utils.git-status")
 local history = require("neovim-project.utils.history")
 local preview = require("neovim-project.preview")
 local project = require("neovim-project.project")
-local config = require("neovim-project.config")
+
+local show_preview = require("neovim-project.config").options.picker.preview
 
 ----------
 -- Actions
@@ -36,7 +35,7 @@ local function create_finder(discover)
     end
   end
 
-  local displayer_config = {
+  local displayer = entry_display.create({
     separator = " ",
     items = {
       {
@@ -46,19 +45,9 @@ local function create_finder(discover)
         remaining = true,
       },
     },
-  }
+  })
 
   local function make_display(entry)
-    if config.options.git_status then
-      local uncommitted = git_status.get_status(entry.value)
-      if uncommitted then
-        displayer_config.separator = "* "
-      else
-        displayer_config.separator = "  "
-      end
-    end
-
-    local displayer = entry_display.create(displayer_config)
     return displayer({ entry.name, { entry.value, "Comment" } })
   end
 
@@ -117,7 +106,7 @@ local function project_history(opts)
     .new(opts, {
       prompt_title = "Recent Projects",
       finder = create_finder(false),
-      previewer = config.options.picker.preview and preview.project_previewer,
+      previewer = show_preview and preview.project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr, map)
         local config = require("neovim-project.config")
@@ -146,7 +135,7 @@ local function project_discover(opts)
     .new(opts, {
       prompt_title = "Discover Projects",
       finder = create_finder(true),
-      previewer = config.options.picker.preview and preview.project_previewer,
+      previewer = show_preview and preview.project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr)
         local on_project_selected = function()
