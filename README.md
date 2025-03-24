@@ -13,6 +13,8 @@
 
 ![Neovim project manager plugin onedark theme](https://github.com/coffebar/neovim-project/assets/3100053/2bc9b472-071c-4975-97b0-545bd1390053)
 
+![Neovim project preview](https://github.com/user-attachments/assets/7a4aa83d-c57d-4e11-9702-88d4d174fe77)
+
 🙏 **Neovim project manager** plugin is heavily inspired by [project.vim](https://github.com/ahmedkhalf/project.nvim)
 
 ## Usage
