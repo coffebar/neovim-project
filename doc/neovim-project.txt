@@ -58,6 +58,7 @@ Lazy.nvim ~
         },
         picker = {
           type = "telescope", -- or "fzf-lua"
+          preview = true, -- show directory structure preview in telescope
         }
       },
       init = function()
@@ -93,6 +94,7 @@ packer.nvim ~
           },
           picker = {
             type = "telescope", -- or "fzf-lua"
+            preview = true, -- show directory structure preview in telescope
           }
         }
       end,
@@ -123,6 +125,7 @@ pckr.nvim ~
           },
           picker = {
             type = "telescope", -- or "fzf-lua"
+            preview = true, -- show directory structure preview in telescope
           }
         }
       end,
@@ -191,6 +194,7 @@ DEFAULT OPTIONS: ~
       -- Fallback to builtin select ui if the specified picker is not available
       picker = {
         type = "telescope", -- or "fzf-lua"
+        preview = true, -- show directory structure preview in telescope
         opts = {
           -- picker-specific options
         },

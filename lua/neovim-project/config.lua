@@ -53,7 +53,7 @@ M.defaults = {
   -- Fallback to builtin select ui if the specified picker is not available
   picker = {
     type = "telescope", -- or "fzf-lua"
-    preview = false,
+    preview = true, -- show directory structure preview in Telescope
     opts = {
       -- picker-specific options
     },
