@@ -13,7 +13,10 @@ local entry_display = require("telescope.pickers.entry_display")
 
 local path = require("neovim-project.utils.path")
 local history = require("neovim-project.utils.history")
+local preview = require("neovim-project.preview")
 local project = require("neovim-project.project")
+
+local show_preview = require("neovim-project.config").options.picker.preview
 
 ----------
 -- Actions
@@ -103,7 +106,7 @@ local function project_history(opts)
     .new(opts, {
       prompt_title = "Recent Projects",
       finder = create_finder(false),
-      previewer = false,
+      previewer = show_preview and preview.project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr, map)
         local config = require("neovim-project.config")
@@ -132,7 +135,7 @@ local function project_discover(opts)
     .new(opts, {
       prompt_title = "Discover Projects",
       finder = create_finder(true),
-      previewer = false,
+      previewer = show_preview and preview.project_previewer,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr)
         local on_project_selected = function()
