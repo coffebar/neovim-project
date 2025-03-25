@@ -76,6 +76,7 @@ function M.get_git_info(project_path)
     branch = "",
     ahead = 0,
     behind = 0,
+    status = "",
   }
 
   vim.fn.chdir(project_path)
@@ -101,6 +102,8 @@ function M.get_git_info(project_path)
     result.ahead = tonumber(ahead)
   end
 
+  result.status = vim.fn.system("git status --porcelain")
+
   vim.fn.chdir(current_dir)
 
   return result
@@ -112,6 +115,7 @@ function M.define_preview_highlighting()
   local normal_bg = vim.fn.synIDattr(vim.fn.hlID("Normal"), "bg#")
   local cursor_line_bg = vim.fn.synIDattr(vim.fn.hlID("CursorLine"), "bg#")
   local visual_bg = vim.fn.synIDattr(vim.fn.hlID("Visual"), "bg#")
+  local insert_bg = vim.fn.synIDattr(vim.fn.hlID("Insert"), "bg#")
 
   -- Text elements
   local comment_fg = vim.fn.synIDattr(vim.fn.hlID("Comment"), "fg#")
@@ -147,26 +151,27 @@ function M.define_preview_highlighting()
   local diff_delete_bg = vim.fn.synIDattr(vim.fn.hlID("DiffDelete"), "bg#")
   local diff_text_bg = vim.fn.synIDattr(vim.fn.hlID("DiffText"), "bg#")
 
-  local title_group = "NeovimProjectTitle"
-  local branch_group = "NeovimProjectBranch"
-  local sync_group = "NeovimProjectSync"
-
-  vim.api.nvim_set_hl(0, title_group, {
+  vim.api.nvim_set_hl(0, "NeovimProjectTitle", {
     bg = title_fg,
     fg = normal_bg,
     bold = true,
   })
 
-  vim.api.nvim_set_hl(0, branch_group, {
+  vim.api.nvim_set_hl(0, "NeovimProjectBranch", {
     bg = function_fg,
     fg = normal_bg,
     bold = true,
   })
 
-  vim.api.nvim_set_hl(0, sync_group, {
+  vim.api.nvim_set_hl(0, "NeovimProjectSync", {
     bg = normal_bg,
     fg = warning_fg,
     bold = true,
+  })
+
+  vim.api.nvim_set_hl(0, "NeovimProjectDeleted", {
+    fg = comment_fg,
+    strikethrough = true,
   })
 end
 
@@ -180,13 +185,11 @@ function M.generate_preview_header(project_path)
   local branch_icon = M.icon_provider("filetype", "git", {
     default_file = "",
   })
-
   local git_info = M.get_git_info(project_path)
   local title_string = " " .. project_title .. " "
   local branch_string = " " .. branch_icon .. " " .. git_info.branch .. " "
   local ahead = ""
   local behind = ""
-  vim.notify(git_info.ahead .. ", " .. git_info.behind)
   if git_info.ahead > 0 then
     ahead = "↑" .. git_info.ahead
   end
@@ -196,7 +199,7 @@ function M.generate_preview_header(project_path)
   local sync_string = " " .. behind .. ahead
   local formatted_header = title_string .. branch_string .. sync_string
   table.insert(header, formatted_header)
-
+  -- table.insert(header, string.rep(" ", 200))
   local title_width = #title_string
   local title_start = 0
   local title_end = title_start + title_width
@@ -225,17 +228,101 @@ function M.generate_preview_header(project_path)
 
   table.insert(header_highlights, {
     line = 0, -- 0-indexed line number
-    hl = "NeovimProjectSync", -- Use our custom highlight group
+    hl = "DiffChange", -- Use our custom highlight group
     start_col = sync_start,
     end_col = sync_end,
   })
-  -- Add a separator line
-  -- table.insert(header, string.rep("─", 200))
 
-  -- -- Add a blank line for spacing
-  -- table.insert(header, "")
+  return { lines = header, highlights = header_highlights }, git_info
+end
 
-  return { lines = header, highlights = header_highlights }
+local function prep_items(project_path, items, git_status)
+  local result = {}
+  for _, item in ipairs(items) do
+    result[item] = {
+      is_dir = vim.fn.isdirectory(project_path .. "/" .. item) == 1,
+      git_status = "",
+      deleted = false,
+    }
+  end
+
+  -- For each top level file/folder in git_status, check if it is in items, if not, add it to the items list
+  if not git_status or git_status == "" then
+    return result
+  end
+
+  local function normalize_git_status(status_code)
+    if not status_code or status_code == "" then
+      return ""
+    end
+
+    -- Trim any whitespace
+    status_code = status_code:gsub("^%s*(.-)%s*$", "%1")
+
+    -- Convert ? to A
+    status_code = status_code:gsub("?", "A")
+
+    -- Remove duplicates by using a set-like table
+    local seen = {}
+    local result = ""
+
+    for i = 1, #status_code do
+      local char = status_code:sub(i, i)
+      if not seen[char] and char:match("[ADMR]") then
+        seen[char] = true
+        result = result .. char
+      end
+    end
+
+    return result
+  end
+
+  local function git_status_display(status_code)
+    if not status_code or status_code == "" then
+      return ""
+    end
+
+    -- Trim any whitespace
+    status_code = normalize_git_status(status_code)
+
+    if status_code == "A" then
+      return "A"
+    end
+
+    if status_code == "?" then
+      return "A"
+    end
+    if status_code == "D" then
+      return "D"
+    end
+
+    return "M"
+  end
+
+  -- Parse git status output line by line
+  for line in git_status:gmatch("[^\r\n]+") do
+    -- D means deleted, so we look for lines with 'D' in either position
+    local status_code = line:sub(0, 2)
+    local path = line:sub(4) -- Skip status code and space
+    local top_level_item = path:match("^([^/]+)")
+    if status_code:match("[D]") and top_level_item and not result[top_level_item] then -- if file is deleted, add back to output list with deleted = true
+      local is_directory = path:match("^[^/]+/") ~= nil
+      result[top_level_item] = {
+        is_dir = is_directory,
+        git_status = status_code,
+        deleted = true,
+      }
+    else
+      if result[top_level_item] then -- accumulate status codes on all top level items
+        result[top_level_item].git_status = result[top_level_item].git_status .. status_code
+      end
+    end
+  end
+  for _, item in pairs(result) do
+    item.git_status = git_status_display(item.git_status)
+  end
+
+  return result
 end
 
 -- Generate project preview content
@@ -254,34 +341,11 @@ function M.generate_project_preview(project_path)
     return { lines = { "Directory does not exist: " .. project_path }, highlights = {} }
   end
 
-  local items = vim.fn.readdir(project_path)
-  -- Separate directories and files
-  local directories = {}
-  local files = {}
-
-  for _, item in ipairs(items) do
-    -- Skip hidden files starting with .
-    if not item:match("^%.") then
-      local is_dir = vim.fn.isdirectory(project_path .. "/" .. item) == 1
-      if is_dir then
-        table.insert(directories, item)
-      else
-        table.insert(files, item)
-      end
-    end
-  end
-
-  --  Sort directories and files alphabetically
-  table.sort(directories)
-  table.sort(files)
+  -- Get header content
+  local header, git_info = M.generate_preview_header(project_path)
 
   local output = {}
   local highlights = {}
-
-  -- -- blank line for padding
-  -- table.insert(output, "")
-  -- Get header content
-  local header = M.generate_preview_header(project_path)
 
   -- Add header lines to output
   for _, line in ipairs(header.lines) do
@@ -293,25 +357,59 @@ function M.generate_project_preview(project_path)
     table.insert(highlights, hl)
   end
 
+  local raw_items = vim.fn.readdir(project_path)
+  local items = prep_items(project_path, raw_items, git_info.status)
+  -- Separate directories and files
+  local directories = {}
+  local files = {}
+  for name, properties in pairs(items) do
+    -- if not name:match("^%.") then
+    if properties.is_dir then
+      table.insert(directories, name)
+    else
+      table.insert(files, name)
+    end
+  end
+
+  -- Sort directories and files alphabetically
+  table.sort(directories)
+  table.sort(files)
+
+  local function status_to_hl_group(status)
+    if status == "A" then
+      return "DiffAdd"
+    end
+
+    if status == "D" then
+      return "DiffDelete"
+    end
+
+    return "DiffChange"
+  end
+
   -- Helper function to format a file/folder and add it to the output
-  local function process_item(item, is_directory)
-    local field_type = is_directory and "directory" or "file"
+  local function process_item(name, properties)
+    local field_type = properties.is_dir and "directory" or "file"
 
     -- Get icon from provider
-    local icon, hl = M.icon_provider(field_type, item, {
+    local icon, hl = M.icon_provider(field_type, name, {
       -- fallback icons
       directory = "📁",
       default_file = "📄",
     })
 
     -- Add trailing slash for directories
-    local display_name = item
-    if is_directory then
-      display_name = item .. "/"
+    local display_name = name
+    if properties.is_dir then
+      display_name = name .. "/"
     end
 
     -- Add line to output
-    local line = "  " .. icon .. " " .. display_name
+    local status_display = properties.git_status .. " "
+    if #status_display == 1 then
+      status_display = status_display .. " "
+    end
+    local line = status_display .. icon .. " " .. display_name
     local line_idx = #output + 1
     table.insert(output, line)
 
@@ -328,16 +426,37 @@ function M.generate_project_preview(project_path)
         end_col = icon_end,
       })
     end
+
+    if properties.git_status ~= "" then
+      table.insert(highlights, {
+        line = line_idx - 1, -- 0-indexed line number
+        hl = status_to_hl_group(properties.git_status),
+        start_col = 0,
+        end_col = 1,
+      })
+    end
+
+    if properties.deleted then
+      local text_start = 3
+      local text_end = #line
+
+      table.insert(highlights, {
+        line = line_idx - 1, -- 0-indexed line number
+        hl = "NeovimProjectDeleted",
+        start_col = text_start,
+        end_col = text_end,
+      })
+    end
   end
 
   -- Process directories first
-  for _, item in ipairs(directories) do
-    process_item(item, true)
+  for _, name in ipairs(directories) do
+    process_item(name, items[name])
   end
 
   -- Then process files
-  for _, item in ipairs(files) do
-    process_item(item, false)
+  for _, name in ipairs(files) do
+    process_item(name, items[name])
   end
 
   return { lines = output, highlights = highlights }
