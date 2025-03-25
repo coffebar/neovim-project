@@ -74,8 +74,8 @@ function M.get_git_info(project_path)
   local current_dir = vim.fn.getcwd()
   local result = {
     branch = "",
-    ahead = "",
-    behind = "",
+    ahead = 0,
+    behind = 0,
   }
 
   vim.fn.chdir(project_path)
@@ -97,15 +97,8 @@ function M.get_git_info(project_path)
 
     -- Parse the output which is in format "N M" where N is behind and M is ahead
     local behind, ahead = status_output:match("(%d+)%s+(%d+)")
-    behind = tonumber(behind)
-    ahead = tonumber(ahead)
-
-    if behind and behind > 0 then
-      result.behind = behind
-    end
-    if ahead and ahead > 0 then
-      result.ahead = ahead
-    end
+    result.behind = tonumber(behind)
+    result.ahead = tonumber(ahead)
   end
 
   vim.fn.chdir(current_dir)
@@ -171,8 +164,8 @@ function M.define_preview_highlighting()
   })
 
   vim.api.nvim_set_hl(0, sync_group, {
-    bg = cursor_line_bg,
-    fg = normal_fg,
+    bg = normal_bg,
+    fg = warning_fg,
     bold = true,
   })
 end
@@ -191,8 +184,17 @@ function M.generate_preview_header(project_path)
   local git_info = M.get_git_info(project_path)
   local title_string = " " .. project_title .. " "
   local branch_string = " " .. branch_icon .. " " .. git_info.branch .. " "
-  local sync_string = git_info.ahead .. " " .. git_info.behind
-  local formatted_header = title_string .. branch_string -- .. sync_string
+  local ahead = ""
+  local behind = ""
+  vim.notify(git_info.ahead .. ", " .. git_info.behind)
+  if git_info.ahead > 0 then
+    ahead = "↑" .. git_info.ahead
+  end
+  if git_info.behind > 0 then
+    behind = "↓" .. git_info.behind
+  end
+  local sync_string = " " .. behind .. ahead
+  local formatted_header = title_string .. branch_string .. sync_string
   table.insert(header, formatted_header)
 
   local title_width = #title_string
