@@ -53,7 +53,11 @@ M.defaults = {
   -- Fallback to builtin select ui if the specified picker is not available
   picker = {
     type = "telescope", -- or "fzf-lua"
-    preview = true, -- show directory structure preview in Telescope
+    preview = {
+      enabled = false, -- show directory structure preview in Telescope
+      git_status = true, -- show branch name and the git status of each file/folder
+      show_hidden = true, -- show hidden files/folders
+    },
     opts = {
       -- picker-specific options
     },

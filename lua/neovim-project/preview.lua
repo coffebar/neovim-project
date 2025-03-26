@@ -1,21 +1,59 @@
 local M = {}
 
 local previewers = require("telescope.previewers")
+local config = require("neovim-project.config")
+local history = require("neovim-project.utils.history")
 
 local initialized = false
+local preview_cache = {}
 
--- Add a function to clear caches
-M.clear_caches = function()
-  preview_cache = {}
+local function clear_caches()
+  local current_project = history.get_current_project()
+  preview_cache[current_project] = nil
+end
+
+local function define_preview_highlighting()
+  local normal_bg = vim.fn.synIDattr(vim.fn.hlID("Normal"), "bg#")
+  local branch_bg = vim.fn.synIDattr(vim.fn.hlID("Directory"), "fg#")
+  local title_bg = vim.fn.synIDattr(vim.fn.hlID("Title"), "fg#")
+
+  vim.api.nvim_set_hl(0, "NeovimProjectTitle", {
+    bg = title_bg,
+    fg = normal_bg,
+    bold = true,
+  })
+
+  vim.api.nvim_set_hl(0, "NeovimProjectBranch", {
+    bg = branch_bg,
+    fg = normal_bg,
+    bold = true,
+  })
+
+  vim.api.nvim_set_hl(0, "NeovimProjectSync", {
+    fg = "#d29922",
+    bold = true,
+  })
+
+  vim.api.nvim_set_hl(0, "NeovimProjectAdded", {
+    fg = "#3fb950",
+  })
+
+  vim.api.nvim_set_hl(0, "NeovimProjectModified", {
+    fg = "#d29922",
+  })
+
+  vim.api.nvim_set_hl(0, "NeovimProjectDeleted", {
+    fg = "#f85149",
+  })
 end
 
 M.init = function()
-  M.define_preview_highlighting()
-  M.clear_caches()
+  define_preview_highlighting()
+  clear_caches()
   -- Set up an autocmd to clear caches periodically
   vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
     callback = function()
-      M.clear_caches()
+      clear_caches()
     end,
     group = vim.api.nvim_create_augroup("NeovimProjectCacheClear", { clear = true }),
   })
@@ -23,7 +61,7 @@ end
 
 --- Stolen from oil.nvim
 --- Check for an icon provider and return a common icon provider API
-M.get_icon_provider = function()
+local function get_icon_provider()
   -- prefer mini.icons
   local _, mini_icons = pcall(require, "mini.icons")
   ---@diagnostic disable-next-line: undefined-field
@@ -48,7 +86,7 @@ M.get_icon_provider = function()
   end
 end
 
-M.icon_provider = M.get_icon_provider() or function(_, _, _)
+local icon_provider = get_icon_provider() or function(_, _, _)
   return "", ""
 end
 
@@ -73,9 +111,6 @@ M.project_previewer = previewers.new_buffer_previewer({
       -- Cancel any pending preview generation
       self._preview_timer:stop()
     end
-
-    -- Clear the buffer first to show something is happening
-    vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, { "Loading preview..." })
 
     local function render_preview()
       -- Check if the buffer still exists
@@ -105,13 +140,13 @@ M.project_previewer = previewers.new_buffer_previewer({
     if preview_cache[project_path] then
       render_preview()
     else
-      self._preview_timer:start(50, 0, vim.schedule_wrap(render_preview))
+      self._preview_timer:start(33, 0, vim.schedule_wrap(render_preview))
     end
   end,
 })
 
 -- Get the current git branch and status for a project path
-function M.get_git_info(project_path)
+local function get_git_info(project_path)
   local current_dir = vim.fn.getcwd()
   local result = {
     is_repo = false,
@@ -159,81 +194,19 @@ function M.get_git_info(project_path)
   return result
 end
 
-function M.define_preview_highlighting()
-  local normal_bg = vim.fn.synIDattr(vim.fn.hlID("Normal"), "bg#")
-  local branch_bg = vim.fn.synIDattr(vim.fn.hlID("Directory"), "fg#")
-  local title_bg = vim.fn.synIDattr(vim.fn.hlID("Title"), "fg#")
-
-  vim.api.nvim_set_hl(0, "NeovimProjectTitle", {
-    bg = title_bg,
-    fg = normal_bg,
-    bold = true,
-  })
-
-  vim.api.nvim_set_hl(0, "NeovimProjectBranch", {
-    bg = branch_bg,
-    fg = normal_bg,
-    bold = true,
-  })
-
-  vim.api.nvim_set_hl(0, "NeovimProjectSync", {
-    fg = "#d29922",
-    bold = true,
-  })
-
-  vim.api.nvim_set_hl(0, "NeovimProjectAdded", {
-    fg = "#3fb950",
-  })
-
-  vim.api.nvim_set_hl(0, "NeovimProjectModified", {
-    fg = "#d29922",
-  })
-
-  vim.api.nvim_set_hl(0, "NeovimProjectDeleted", {
-    fg = "#f85149",
-  })
-end
-
 -- Generate header for project preview
-function M.generate_preview_header(project_path)
+local function generate_preview_header(project_path)
   local header = {}
   local header_highlights = {}
   local project_title = vim.fn.fnamemodify(project_path, ":t")
   -- Add padding spaces for better appearance with background color
 
-  local branch_icon = M.icon_provider("filetype", "git", {
-    default_file = "",
-  })
-  local git_info = M.get_git_info(project_path)
   local title_string = " " .. project_title .. " "
-  local branch_string = " " .. branch_icon .. " " .. git_info.branch .. " "
-
-  local ahead = ""
-  local behind = ""
-  if git_info.ahead > 0 then
-    ahead = "↑" .. git_info.ahead
-  end
-  if git_info.behind > 0 then
-    behind = "↓" .. git_info.behind
-  end
-  local sync_string = " " .. behind .. ahead .. " "
   local formatted_header = title_string
-  if git_info.is_repo then
-    formatted_header = formatted_header .. branch_string .. sync_string
-  end
-  table.insert(header, formatted_header)
-  -- table.insert(header, string.rep(" ", 200))
+
   local title_width = #title_string
   local title_start = 0
   local title_end = title_start + title_width
-
-  local branch_width = #branch_string
-  local branch_start = title_end
-  local branch_end = branch_start + branch_width
-
-  local sync_width = #sync_string
-  local sync_start = branch_end
-  local sync_end = sync_start + sync_width
 
   table.insert(header_highlights, {
     line = 0, -- 0-indexed line number
@@ -241,20 +214,50 @@ function M.generate_preview_header(project_path)
     start_col = title_start,
     end_col = title_end,
   })
+  local git_info = {}
+  if config.options.picker.preview.git_status then
+    git_info = get_git_info(project_path)
+    if git_info.is_repo then
+      local branch_icon = icon_provider("filetype", "git", {
+        default_file = "",
+      })
+      local branch_string = " " .. branch_icon .. " " .. git_info.branch .. " "
 
-  table.insert(header_highlights, {
-    line = 0, -- 0-indexed line number
-    hl = "NeovimProjectBranch", -- Use our custom highlight group
-    start_col = branch_start,
-    end_col = branch_end,
-  })
+      local ahead = ""
+      local behind = ""
+      if git_info.ahead > 0 then
+        ahead = "↑" .. git_info.ahead
+      end
+      if git_info.behind > 0 then
+        behind = "↓" .. git_info.behind
+      end
+      local sync_string = " " .. behind .. ahead .. " "
+      formatted_header = formatted_header .. branch_string .. sync_string
 
-  table.insert(header_highlights, {
-    line = 0, -- 0-indexed line number
-    hl = "NeovimProjectSync", -- Use our custom highlight group
-    start_col = sync_start,
-    end_col = sync_end,
-  })
+      local branch_width = #branch_string
+      local branch_start = title_end
+      local branch_end = branch_start + branch_width
+
+      local sync_width = #sync_string
+      local sync_start = branch_end
+      local sync_end = sync_start + sync_width
+      table.insert(header_highlights, {
+        line = 0, -- 0-indexed line number
+        hl = "NeovimProjectBranch", -- Use our custom highlight group
+        start_col = branch_start,
+        end_col = branch_end,
+      })
+
+      table.insert(header_highlights, {
+        line = 0, -- 0-indexed line number
+        hl = "NeovimProjectSync", -- Use our custom highlight group
+        start_col = sync_start,
+        end_col = sync_end,
+      })
+    end
+  end
+
+  table.insert(header, formatted_header)
 
   return { lines = header, highlights = header_highlights }, git_info
 end
@@ -277,7 +280,7 @@ local function prep_items(project_path, items, git_status)
 
   -- Optimize status code normalization
   local status_map = {
-    ["?"] = "A", -- Untracked files are treated as Added
+    ["??"] = "A", -- Untracked files are treated as Added
     ["A"] = "A", -- Added
     ["M"] = "M", -- Modified
     ["R"] = "M", -- Renamed (treat as modified)
@@ -293,22 +296,32 @@ local function prep_items(project_path, items, git_status)
       return "D"
     end
 
-    if dir then
-      return "M"
+    status_code = status_code:gsub("%?", "A")
+    -- Remove duplicate characters
+    local seen = {}
+    local result = ""
+    for i = 1, #status_code do
+      local char = status_code:sub(i, i)
+      if not seen[char] then
+        seen[char] = true
+        result = result .. char
+      end
     end
+    status_code = result
 
-    -- Quick lookup for common status codes
     if #status_code == 1 then
       return status_map[status_code] or "M"
     end
 
-    -- For multiple status codes, prioritize D > A > M
-    if status_code:match("D") then
-      return "D"
+    -- For multiple status codes, prioritize A > M > D
+    if dir then
+      return "M"
     elseif status_code:match("A") or status_code:match("?") then
       return "A"
-    else
+    elseif status_code:match("M") then
       return "M"
+    else
+      return "D"
     end
   end
 
@@ -316,14 +329,13 @@ local function prep_items(project_path, items, git_status)
   for line in git_status:gmatch("[^\r\n]+") do
     if #line >= 3 then
       local status_code = line:sub(1, 2)
-      local path = line:sub(4) -- Skip status code and space
+      local path = line:sub(4)
 
-      -- Extract top-level item more efficiently
-      local slash_pos = path:find("/")
-      local top_level_item = slash_pos and path:sub(1, slash_pos - 1) or path
+      local first_slash = path:find("/")
+      local top_level_item = first_slash and path:sub(1, first_slash - 1) or path
 
       if status_code:match("[D]") and top_level_item and not result[top_level_item] then
-        local is_directory = slash_pos ~= nil
+        local is_directory = first_slash ~= nil
         result[top_level_item] = {
           is_dir = is_directory,
           git_status = "D",
@@ -343,49 +355,21 @@ local function prep_items(project_path, items, git_status)
   return result
 end
 
--- Generate project preview content
-function M.generate_project_preview(project_path)
-  if not project_path or project_path == "" then
-    return { lines = { "No project path provided" }, highlights = {} }
-  end
-
-  -- Process path to make it usable
-  project_path = vim.fn.expand(project_path)
-  project_path = vim.fn.fnamemodify(project_path, ":p")
-  project_path = project_path:gsub("[/\\]$", "")
-
-  -- Check if the directory existsi
-  if vim.fn.isdirectory(project_path) ~= 1 then
-    return { lines = { "Directory does not exist: " .. project_path }, highlights = {} }
-  end
-
-  -- Get header content
-  local header, git_info = M.generate_preview_header(project_path)
-
-  local output = {}
+local function generate_preview_body(project_path, git_info)
+  local body = {}
   local highlights = {}
 
-  -- Add header lines to output
-  for _, line in ipairs(header.lines) do
-    table.insert(output, line)
-  end
-
-  -- Add header highlights to highlights
-  for _, hl in ipairs(header.highlights) do
-    table.insert(highlights, hl)
-  end
-
-  local raw_items = vim.fn.readdir(project_path)
-  local items = prep_items(project_path, raw_items, git_info.status)
+  local items = prep_items(project_path, vim.fn.readdir(project_path), git_info.status)
   -- Separate directories and files
   local directories = {}
   local files = {}
   for name, properties in pairs(items) do
-    -- if not name:match("^%.") then
-    if properties.is_dir then
-      table.insert(directories, name)
-    else
-      table.insert(files, name)
+    if config.options.picker.preview.show_hidden or not name:match("^%.") then
+      if properties.is_dir then
+        table.insert(directories, name)
+      else
+        table.insert(files, name)
+      end
     end
   end
 
@@ -396,13 +380,11 @@ function M.generate_project_preview(project_path)
   local function status_to_hl_group(status)
     if status == "A" then
       return "NeovimProjectAdded"
-    end
-
-    if status == "D" then
+    elseif status == "D" then
       return "NeovimProjectDeleted"
+    else
+      return "NeovimProjectModified"
     end
-
-    return "NeovimProjectModified"
   end
 
   -- Helper function to format a file/folder and add it to the output
@@ -410,7 +392,7 @@ function M.generate_project_preview(project_path)
     local field_type = properties.is_dir and "directory" or "file"
 
     -- Get icon from provider
-    local icon, hl = M.icon_provider(field_type, name, {
+    local icon, hl = icon_provider(field_type, name, {
       -- fallback icons
       directory = "📁",
       default_file = "📄",
@@ -422,45 +404,44 @@ function M.generate_project_preview(project_path)
       display_name = name .. "/"
     end
 
-    -- Add line to output
+    -- Add status letter and insert line
     local status_display = properties.git_status .. " "
     if #status_display == 1 then
-      status_display = status_display .. " "
+      status_display = "  "
     end
     local line = status_display .. icon .. " " .. display_name
-    local line_idx = #output + 1
-    table.insert(output, line)
+    local line_idx = #body + 2
+    table.insert(body, line)
 
-    -- Store highlight information if we have a highlight group
+    -- Icon highlighting
     if hl and hl ~= "" then
-      -- Calculate icon position (after the leading spaces)
       local icon_start = 2
       local icon_end = icon_start + vim.fn.strwidth(icon)
 
       table.insert(highlights, {
-        line = line_idx - 1, -- 0-indexed line number
+        line = line_idx - 1,
         hl = hl,
         start_col = icon_start,
         end_col = icon_end,
       })
     end
 
+    -- Highlight for files with a git_status
     if properties.git_status ~= "" then
       table.insert(highlights, {
-        line = line_idx - 1, -- 0-indexed line number
+        line = line_idx - 1,
         hl = status_to_hl_group(properties.git_status),
         start_col = 0,
         end_col = #line,
       })
-    end
-
-    if name:match("^%.") then
+    -- Highlight for hidden files
+    elseif name:match("^%.") then
       local text_start = 4
       local text_end = #line
 
       table.insert(highlights, {
-        line = line_idx - 1, -- 0-indexed line number
-        hl = "Comment", --"NeovimProjectDeleted",
+        line = line_idx - 1,
+        hl = "Comment",
         start_col = text_start,
         end_col = text_end,
       })
@@ -477,6 +458,43 @@ function M.generate_project_preview(project_path)
     process_item(name, items[name])
   end
 
+  return { lines = body, highlights = highlights }
+end
+
+-- Generate project preview content
+function M.generate_project_preview(project_path)
+  -- Process path to make it usable
+  project_path = vim.fn.expand(project_path)
+  project_path = vim.fn.fnamemodify(project_path, ":p")
+  project_path = project_path:gsub("[/\\]$", "")
+
+  local output = {}
+  local highlights = {}
+
+  -- Get header content
+  local header, git_info = generate_preview_header(project_path)
+
+  -- Add header lines to output
+  for _, line in ipairs(header.lines) do
+    table.insert(output, line)
+  end
+
+  -- Add header highlights to highlights
+  for _, hl in ipairs(header.highlights) do
+    table.insert(highlights, hl)
+  end
+
+  local body = generate_preview_body(project_path, git_info)
+
+  -- Add body lines to output
+  for _, line in ipairs(body.lines) do
+    table.insert(output, line)
+  end
+
+  -- Add body highlights to highlights
+  for _, hl in ipairs(body.highlights) do
+    table.insert(highlights, hl)
+  end
   return { lines = output, highlights = highlights }
 end
 

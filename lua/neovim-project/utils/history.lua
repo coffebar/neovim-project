@@ -116,6 +116,20 @@ function M.get_recent_projects()
   return sanitize_projects()
 end
 
+function M.get_current_project()
+  local projects = M.get_recent_projects()
+
+  if #M.session_projects > 0 then
+    return M.session_projects[#M.session_projects]
+  end
+
+  if projects and #projects > 0 then
+    return projects[#projects]
+  end
+
+  return ""
+end
+
 function M.make_sure_read_projects_from_history()
   if M.history_read == false then
     M.read_projects_from_history()
