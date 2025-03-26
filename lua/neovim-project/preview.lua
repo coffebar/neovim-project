@@ -8,15 +8,30 @@ local initialized = false
 local preview_cache = {}
 local fetched = {}
 
-local function clear_caches()
-  local current_project = history.get_current_project()
-  preview_cache[current_project] = nil
+local function expand_path(project_path)
+  project_path = vim.fn.expand(project_path)
+  project_path = vim.fn.fnamemodify(project_path, ":p")
+  project_path = project_path:gsub("[/\\]$", "")
+  return project_path
 end
 
-local function define_preview_highlighting()
+local function clear_caches()
+  local current_project = expand_path(history.get_current_project())
+  preview_cache[current_project] = nil
+  fetched[current_project] = nil
+end
+
+function M.define_preview_highlighting()
   local normal_bg = vim.fn.synIDattr(vim.fn.hlID("Normal"), "bg#")
-  local branch_bg = vim.fn.synIDattr(vim.fn.hlID("Directory"), "fg#")
-  local title_bg = vim.fn.synIDattr(vim.fn.hlID("Title"), "fg#")
+  local branch_bg = vim.fn.synIDattr(vim.fn.hlID("Function"), "fg#")
+  local title_bg = vim.fn.synIDattr(vim.fn.hlID("Constant"), "fg#")
+  local added_fg = vim.fn.synIDattr(vim.fn.hlID("Added"), "fg#")
+  local changed_fg = vim.fn.synIDattr(vim.fn.hlID("Changed"), "fg#")
+  local removed_fg = vim.fn.synIDattr(vim.fn.hlID("Removed"), "fg#")
+  -- fallback, not all themes have Function
+  if not branch_bg or branch_bg == "" then
+    branch_bg = vim.fn.synIDattr(vim.fn.hlID("Statement"), "fg#")
+  end
 
   vim.api.nvim_set_hl(0, "NeovimProjectTitle", {
     bg = title_bg,
@@ -30,27 +45,35 @@ local function define_preview_highlighting()
     bold = true,
   })
 
-  vim.api.nvim_set_hl(0, "NeovimProjectSync", {
-    fg = "#d29922",
-    bold = true,
-  })
-
   vim.api.nvim_set_hl(0, "NeovimProjectAdded", {
-    fg = "#3fb950",
+    bg = normal_bg,
+    fg = added_fg,
   })
 
-  vim.api.nvim_set_hl(0, "NeovimProjectModified", {
-    fg = "#d29922",
+  vim.api.nvim_set_hl(0, "NeovimProjectChanged", {
+    bg = normal_bg,
+    fg = changed_fg,
   })
 
-  vim.api.nvim_set_hl(0, "NeovimProjectDeleted", {
-    fg = "#f85149",
+  vim.api.nvim_set_hl(0, "NeovimProjectRemoved", {
+    bg = normal_bg,
+    fg = removed_fg,
   })
 end
 
 M.init = function()
-  define_preview_highlighting()
+  M.define_preview_highlighting()
   clear_caches()
+
+  -- autocmd to enforce proper highlighting when changing colorschemes
+  vim.api.nvim_create_autocmd("ColorScheme", {
+    callback = function()
+      local preview = require("neovim-project.preview")
+      preview.define_preview_highlighting()
+    end,
+    group = vim.api.nvim_create_augroup("NeovimProjectHighlights", { clear = true }),
+  })
+
   -- Set up an autocmd to clear caches periodically
   vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
     callback = function()
@@ -106,10 +129,7 @@ M.project_previewer = previewers.new_buffer_previewer({
     local project_path = entry.value
 
     -- Process path to make it usable
-    project_path = vim.fn.expand(project_path)
-    project_path = vim.fn.fnamemodify(project_path, ":p")
-    project_path = project_path:gsub("[/\\]$", "")
-
+    project_path = expand_path(project_path)
     -- Create a timer for debouncing preview generation
     if not self._preview_timer then
       self._preview_timer = vim.loop.new_timer()
@@ -172,6 +192,7 @@ local function get_git_info(project_path)
   end
 
   result.is_repo = true
+
   local branch_name = vim.fn.system("git branch --show-current"):gsub("\n", "")
 
   -- Only proceed if we have a valid branch
@@ -190,6 +211,11 @@ local function get_git_info(project_path)
           -- Clear preview cache to refresh the ahead/behind counts
           preview_cache[project_path] = nil
           fetched[project_path] = true
+
+          -- These commands are idempotent, it is harmless to spam them
+          -- They enable maintenance and fsmonitor, optimizations that speed up fetch and status commands on large repos, and are harmless on small ones
+          vim.fn.system("git -C config core.fsmonitor builtin")
+          vim.fn.system("git -C maintenance start")
         end,
       })
     end
@@ -208,7 +234,6 @@ local function get_git_info(project_path)
     end
   end
 
-  -- Use --porcelain=v1 for stable output format and limit to top-level entries
   result.status = vim.fn.system("git status --porcelain=v1")
 
   vim.fn.chdir(current_dir)
@@ -272,7 +297,7 @@ local function generate_preview_header(project_path)
 
       table.insert(header_highlights, {
         line = 0, -- 0-indexed line number
-        hl = "NeovimProjectSync", -- Use our custom highlight group
+        hl = "NeovimProjectChanged", -- Use our custom highlight group
         start_col = sync_start,
         end_col = sync_end,
       })
@@ -403,9 +428,9 @@ local function generate_preview_body(project_path, git_info)
     if status == "A" then
       return "NeovimProjectAdded"
     elseif status == "D" then
-      return "NeovimProjectDeleted"
+      return "NeovimProjectRemoved"
     else
-      return "NeovimProjectModified"
+      return "NeovimProjectChanged"
     end
   end
 
