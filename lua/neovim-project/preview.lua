@@ -73,6 +73,7 @@ M.project_previewer = previewers.new_buffer_previewer({
 function M.get_git_info(project_path)
   local current_dir = vim.fn.getcwd()
   local result = {
+    is_repo = false,
     branch = "",
     ahead = 0,
     behind = 0,
@@ -82,24 +83,32 @@ function M.get_git_info(project_path)
   vim.fn.chdir(project_path)
 
   -- Get branch name
-  local branch_name = vim.fn.system("git branch --show-current 2>/dev/null"):gsub("\n", "")
+  local is_git_repo = vim.fn.system("git rev-parse --is-inside-work-tree"):match("true")
+  if not is_git_repo then
+    vim.fn.chdir(current_dir)
+    return result
+  end
+  result.is_repo = true
+  local branch_name = vim.fn.system("git branch --show-current"):gsub("\n", "")
 
   -- Only proceed if we have a valid branch
   if branch_name ~= "" then
     result.branch = branch_name
-
     -- Fetch from remote to get up-to-date information (optional, can be removed if too slow)
     -- vim.fn.system("git fetch --quiet 2>/dev/null")
 
     -- Get ahead/behind counts
-    local status_output = vim.fn.system(
-      "git rev-list --left-right --count origin/" .. branch_name .. "..." .. branch_name .. " 2>/dev/null"
-    )
+    local status_output =
+      vim.fn.system("git rev-list --left-right --count origin/" .. branch_name .. "..." .. branch_name)
 
     -- Parse the output which is in format "N M" where N is behind and M is ahead
     local behind, ahead = status_output:match("(%d+)%s+(%d+)")
-    result.behind = tonumber(behind)
-    result.ahead = tonumber(ahead)
+    if tonumber(behind) then
+      result.behind = tonumber(behind)
+    end
+    if tonumber(ahead) then
+      result.ahead = tonumber(ahead)
+    end
   end
 
   result.status = vim.fn.system("git status --porcelain")
@@ -110,68 +119,37 @@ function M.get_git_info(project_path)
 end
 
 function M.define_preview_highlighting()
-  -- Basic UI elements
-  local normal_fg = vim.fn.synIDattr(vim.fn.hlID("Normal"), "fg#")
   local normal_bg = vim.fn.synIDattr(vim.fn.hlID("Normal"), "bg#")
-  local cursor_line_bg = vim.fn.synIDattr(vim.fn.hlID("CursorLine"), "bg#")
-  local visual_bg = vim.fn.synIDattr(vim.fn.hlID("Visual"), "bg#")
-  local insert_bg = vim.fn.synIDattr(vim.fn.hlID("Insert"), "bg#")
-
-  -- Text elements
-  local comment_fg = vim.fn.synIDattr(vim.fn.hlID("Comment"), "fg#")
-  local string_fg = vim.fn.synIDattr(vim.fn.hlID("String"), "fg#")
-  local number_fg = vim.fn.synIDattr(vim.fn.hlID("Number"), "fg#")
-  local constant_fg = vim.fn.synIDattr(vim.fn.hlID("Constant"), "fg#")
-
-  -- Programming elements
-  local function_fg = vim.fn.synIDattr(vim.fn.hlID("Function"), "fg#")
-  local keyword_fg = vim.fn.synIDattr(vim.fn.hlID("Keyword"), "fg#")
-  local statement_fg = vim.fn.synIDattr(vim.fn.hlID("Statement"), "fg#")
-  local type_fg = vim.fn.synIDattr(vim.fn.hlID("Type"), "fg#")
-  local special_fg = vim.fn.synIDattr(vim.fn.hlID("Special"), "fg#")
-  local identifier_fg = vim.fn.synIDattr(vim.fn.hlID("Identifier"), "fg#")
-
-  -- UI elements
-  local pmenu_bg = vim.fn.synIDattr(vim.fn.hlID("Pmenu"), "bg#")
-  local pmenu_sel_bg = vim.fn.synIDattr(vim.fn.hlID("PmenuSel"), "bg#")
-  local error_fg = vim.fn.synIDattr(vim.fn.hlID("Error"), "fg#")
-  local warning_fg = vim.fn.synIDattr(vim.fn.hlID("WarningMsg"), "fg#")
-  local todo_fg = vim.fn.synIDattr(vim.fn.hlID("Todo"), "fg#")
-  local directory_fg = vim.fn.synIDattr(vim.fn.hlID("Directory"), "fg#")
-  local title_fg = vim.fn.synIDattr(vim.fn.hlID("Title"), "fg#")
-
-  -- Status line
-  local statusline_fg = vim.fn.synIDattr(vim.fn.hlID("StatusLine"), "fg#")
-  local statusline_bg = vim.fn.synIDattr(vim.fn.hlID("StatusLine"), "bg#")
-  local statusline_nc_bg = vim.fn.synIDattr(vim.fn.hlID("StatusLineNC"), "bg#")
-
-  -- Diff colors
-  local diff_add_bg = vim.fn.synIDattr(vim.fn.hlID("DiffAdd"), "bg#")
-  local diff_change_bg = vim.fn.synIDattr(vim.fn.hlID("DiffChange"), "bg#")
-  local diff_delete_bg = vim.fn.synIDattr(vim.fn.hlID("DiffDelete"), "bg#")
-  local diff_text_bg = vim.fn.synIDattr(vim.fn.hlID("DiffText"), "bg#")
+  local branch_bg = vim.fn.synIDattr(vim.fn.hlID("Directory"), "fg#")
+  local title_bg = vim.fn.synIDattr(vim.fn.hlID("Title"), "fg#")
 
   vim.api.nvim_set_hl(0, "NeovimProjectTitle", {
-    bg = title_fg,
+    bg = title_bg,
     fg = normal_bg,
     bold = true,
   })
 
   vim.api.nvim_set_hl(0, "NeovimProjectBranch", {
-    bg = function_fg,
+    bg = branch_bg,
     fg = normal_bg,
     bold = true,
   })
 
   vim.api.nvim_set_hl(0, "NeovimProjectSync", {
-    bg = normal_bg,
-    fg = warning_fg,
+    fg = "#d29922",
     bold = true,
   })
 
+  vim.api.nvim_set_hl(0, "NeovimProjectAdded", {
+    fg = "#3fb950",
+  })
+
+  vim.api.nvim_set_hl(0, "NeovimProjectModified", {
+    fg = "#d29922",
+  })
+
   vim.api.nvim_set_hl(0, "NeovimProjectDeleted", {
-    fg = comment_fg,
-    strikethrough = true,
+    fg = "#f85149",
   })
 end
 
@@ -188,6 +166,7 @@ function M.generate_preview_header(project_path)
   local git_info = M.get_git_info(project_path)
   local title_string = " " .. project_title .. " "
   local branch_string = " " .. branch_icon .. " " .. git_info.branch .. " "
+
   local ahead = ""
   local behind = ""
   if git_info.ahead > 0 then
@@ -196,8 +175,11 @@ function M.generate_preview_header(project_path)
   if git_info.behind > 0 then
     behind = "↓" .. git_info.behind
   end
-  local sync_string = " " .. behind .. ahead
-  local formatted_header = title_string .. branch_string .. sync_string
+  local sync_string = " " .. behind .. ahead .. " "
+  local formatted_header = title_string
+  if git_info.is_repo then
+    formatted_header = formatted_header .. branch_string .. sync_string
+  end
   table.insert(header, formatted_header)
   -- table.insert(header, string.rep(" ", 200))
   local title_width = #title_string
@@ -228,7 +210,7 @@ function M.generate_preview_header(project_path)
 
   table.insert(header_highlights, {
     line = 0, -- 0-indexed line number
-    hl = "DiffChange", -- Use our custom highlight group
+    hl = "NeovimProjectSync", -- Use our custom highlight group
     start_col = sync_start,
     end_col = sync_end,
   })
@@ -277,9 +259,17 @@ local function prep_items(project_path, items, git_status)
     return result
   end
 
-  local function git_status_display(status_code)
+  local function git_status_display(status_code, deleted, dir)
     if not status_code or status_code == "" then
       return ""
+    end
+
+    if deleted then
+      return "D"
+    end
+
+    if dir then
+      return "M"
     end
 
     -- Trim any whitespace
@@ -291,9 +281,6 @@ local function prep_items(project_path, items, git_status)
 
     if status_code == "?" then
       return "A"
-    end
-    if status_code == "D" then
-      return "D"
     end
 
     return "M"
@@ -309,7 +296,7 @@ local function prep_items(project_path, items, git_status)
       local is_directory = path:match("^[^/]+/") ~= nil
       result[top_level_item] = {
         is_dir = is_directory,
-        git_status = status_code,
+        git_status = "D",
         deleted = true,
       }
     else
@@ -319,7 +306,7 @@ local function prep_items(project_path, items, git_status)
     end
   end
   for _, item in pairs(result) do
-    item.git_status = git_status_display(item.git_status)
+    item.git_status = git_status_display(item.git_status, item.deleted, item.is_dir)
   end
 
   return result
@@ -377,14 +364,14 @@ function M.generate_project_preview(project_path)
 
   local function status_to_hl_group(status)
     if status == "A" then
-      return "DiffAdd"
+      return "NeovimProjectAdded"
     end
 
     if status == "D" then
-      return "DiffDelete"
+      return "NeovimProjectDeleted"
     end
 
-    return "DiffChange"
+    return "NeovimProjectModified"
   end
 
   -- Helper function to format a file/folder and add it to the output
@@ -432,17 +419,17 @@ function M.generate_project_preview(project_path)
         line = line_idx - 1, -- 0-indexed line number
         hl = status_to_hl_group(properties.git_status),
         start_col = 0,
-        end_col = 1,
+        end_col = #line,
       })
     end
 
-    if properties.deleted then
-      local text_start = 3
+    if name:match("^%.") then
+      local text_start = 4
       local text_end = #line
 
       table.insert(highlights, {
         line = line_idx - 1, -- 0-indexed line number
-        hl = "NeovimProjectDeleted",
+        hl = "Comment", --"NeovimProjectDeleted",
         start_col = text_start,
         end_col = text_end,
       })
