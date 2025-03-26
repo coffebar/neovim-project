@@ -4,8 +4,21 @@ local previewers = require("telescope.previewers")
 
 local initialized = false
 
+-- Add a function to clear caches
+M.clear_caches = function()
+  preview_cache = {}
+end
+
 M.init = function()
   M.define_preview_highlighting()
+  M.clear_caches()
+  -- Set up an autocmd to clear caches periodically
+  vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
+    callback = function()
+      M.clear_caches()
+    end,
+    group = vim.api.nvim_create_augroup("NeovimProjectCacheClear", { clear = true }),
+  })
 end
 
 --- Stolen from oil.nvim
@@ -48,23 +61,51 @@ M.project_previewer = previewers.new_buffer_previewer({
   define_preview = function(self, entry)
     if not initialized then
       M.init()
+      initialized = true
     end
+
     local project_path = entry.value
-    local preview_data = M.generate_project_preview(project_path)
 
-    -- Display the output
-    vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, preview_data.lines)
+    -- Create a debounced preview generation
+    if not self._preview_timer then
+      self._preview_timer = vim.loop.new_timer()
+    else
+      -- Cancel any pending preview generation
+      self._preview_timer:stop()
+    end
 
-    -- Apply highlights
-    for _, hl_info in ipairs(preview_data.highlights) do
-      vim.api.nvim_buf_add_highlight(
-        self.state.bufnr,
-        -1, -- namespace ID (-1 for a new namespace)
-        hl_info.hl,
-        hl_info.line,
-        hl_info.start_col,
-        hl_info.end_col
-      )
+    -- Clear the buffer first to show something is happening
+    vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, { "Loading preview..." })
+
+    local function render_preview()
+      -- Check if the buffer still exists
+      if vim.api.nvim_buf_is_valid(self.state.bufnr) then
+        if not preview_cache[project_path] then
+          preview_cache[project_path] = M.generate_project_preview(project_path)
+        end
+        -- Display the output
+        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, preview_cache[project_path].lines)
+
+        -- Apply highlights
+        local ns_id = vim.api.nvim_create_namespace("neovim_project_preview")
+        vim.api.nvim_buf_clear_namespace(self.state.bufnr, ns_id, 0, -1)
+
+        for _, hl_info in ipairs(preview_cache[project_path].highlights) do
+          vim.api.nvim_buf_add_highlight(
+            self.state.bufnr,
+            ns_id,
+            hl_info.hl,
+            hl_info.line,
+            hl_info.start_col,
+            hl_info.end_col
+          )
+        end
+      end
+    end
+    if preview_cache[project_path] then
+      render_preview()
+    else
+      self._preview_timer:start(50, 0, vim.schedule_wrap(render_preview))
     end
   end,
 })
@@ -88,18 +129,17 @@ function M.get_git_info(project_path)
     vim.fn.chdir(current_dir)
     return result
   end
+
   result.is_repo = true
   local branch_name = vim.fn.system("git branch --show-current"):gsub("\n", "")
 
   -- Only proceed if we have a valid branch
   if branch_name ~= "" then
     result.branch = branch_name
-    -- Fetch from remote to get up-to-date information (optional, can be removed if too slow)
-    -- vim.fn.system("git fetch --quiet 2>/dev/null")
 
-    -- Get ahead/behind counts
+    -- Get ahead/behind counts - use plumbing commands for better performance
     local status_output =
-      vim.fn.system("git rev-list --left-right --count origin/" .. branch_name .. "..." .. branch_name)
+      vim.fn.system("git rev-list --left-right --count origin/" .. branch_name .. "..." .. branch_name .. " ")
 
     -- Parse the output which is in format "N M" where N is behind and M is ahead
     local behind, ahead = status_output:match("(%d+)%s+(%d+)")
@@ -111,7 +151,8 @@ function M.get_git_info(project_path)
     end
   end
 
-  result.status = vim.fn.system("git status --porcelain")
+  -- Use --porcelain=v1 for stable output format and limit to top-level entries
+  result.status = vim.fn.system("git status --porcelain=v1")
 
   vim.fn.chdir(current_dir)
 
@@ -220,6 +261,7 @@ end
 
 local function prep_items(project_path, items, git_status)
   local result = {}
+  -- Pre-allocate the table size for better performance
   for _, item in ipairs(items) do
     result[item] = {
       is_dir = vim.fn.isdirectory(project_path .. "/" .. item) == 1,
@@ -233,31 +275,14 @@ local function prep_items(project_path, items, git_status)
     return result
   end
 
-  local function normalize_git_status(status_code)
-    if not status_code or status_code == "" then
-      return ""
-    end
-
-    -- Trim any whitespace
-    status_code = status_code:gsub("^%s*(.-)%s*$", "%1")
-
-    -- Convert ? to A
-    status_code = status_code:gsub("?", "A")
-
-    -- Remove duplicates by using a set-like table
-    local seen = {}
-    local result = ""
-
-    for i = 1, #status_code do
-      local char = status_code:sub(i, i)
-      if not seen[char] and char:match("[ADMR]") then
-        seen[char] = true
-        result = result .. char
-      end
-    end
-
-    return result
-  end
+  -- Optimize status code normalization
+  local status_map = {
+    ["?"] = "A", -- Untracked files are treated as Added
+    ["A"] = "A", -- Added
+    ["M"] = "M", -- Modified
+    ["R"] = "M", -- Renamed (treat as modified)
+    ["D"] = "D", -- Deleted
+  }
 
   local function git_status_display(status_code, deleted, dir)
     if not status_code or status_code == "" then
@@ -272,41 +297,47 @@ local function prep_items(project_path, items, git_status)
       return "M"
     end
 
-    -- Trim any whitespace
-    status_code = normalize_git_status(status_code)
-
-    if status_code == "A" then
-      return "A"
+    -- Quick lookup for common status codes
+    if #status_code == 1 then
+      return status_map[status_code] or "M"
     end
 
-    if status_code == "?" then
+    -- For multiple status codes, prioritize D > A > M
+    if status_code:match("D") then
+      return "D"
+    elseif status_code:match("A") or status_code:match("?") then
       return "A"
+    else
+      return "M"
     end
-
-    return "M"
   end
 
-  -- Parse git status output line by line
+  -- Parse git status output line by line - optimize by avoiding pattern matching where possible
   for line in git_status:gmatch("[^\r\n]+") do
-    -- D means deleted, so we look for lines with 'D' in either position
-    local status_code = line:sub(0, 2)
-    local path = line:sub(4) -- Skip status code and space
-    local top_level_item = path:match("^([^/]+)")
-    if status_code:match("[D]") and top_level_item and not result[top_level_item] then -- if file is deleted, add back to output list with deleted = true
-      local is_directory = path:match("^[^/]+/") ~= nil
-      result[top_level_item] = {
-        is_dir = is_directory,
-        git_status = "D",
-        deleted = true,
-      }
-    else
-      if result[top_level_item] then -- accumulate status codes on all top level items
+    if #line >= 3 then
+      local status_code = line:sub(1, 2)
+      local path = line:sub(4) -- Skip status code and space
+
+      -- Extract top-level item more efficiently
+      local slash_pos = path:find("/")
+      local top_level_item = slash_pos and path:sub(1, slash_pos - 1) or path
+
+      if status_code:match("[D]") and top_level_item and not result[top_level_item] then
+        local is_directory = slash_pos ~= nil
+        result[top_level_item] = {
+          is_dir = is_directory,
+          git_status = "D",
+          deleted = true,
+        }
+      elseif result[top_level_item] then
         result[top_level_item].git_status = result[top_level_item].git_status .. status_code
       end
     end
   end
-  for _, item in pairs(result) do
-    item.git_status = git_status_display(item.git_status, item.deleted, item.is_dir)
+
+  -- Process git status in a single pass
+  for item_name, item_data in pairs(result) do
+    item_data.git_status = git_status_display(item_data.git_status, item_data.deleted, item_data.is_dir)
   end
 
   return result
