@@ -6,6 +6,7 @@ local history = require("neovim-project.utils.history")
 
 local initialized = false
 local preview_cache = {}
+local fetched = {}
 
 local function clear_caches()
   local current_project = history.get_current_project()
@@ -104,7 +105,12 @@ M.project_previewer = previewers.new_buffer_previewer({
 
     local project_path = entry.value
 
-    -- Create a debounced preview generation
+    -- Process path to make it usable
+    project_path = vim.fn.expand(project_path)
+    project_path = vim.fn.fnamemodify(project_path, ":p")
+    project_path = project_path:gsub("[/\\]$", "")
+
+    -- Create a timer for debouncing preview generation
     if not self._preview_timer then
       self._preview_timer = vim.loop.new_timer()
     else
@@ -171,6 +177,22 @@ local function get_git_info(project_path)
   -- Only proceed if we have a valid branch
   if branch_name ~= "" then
     result.branch = branch_name
+
+    -- Fetch remote information for accurate ahead/behind counters
+    -- Done asynchronously to prevent freezing UI
+    -- This will fetch once per project during a particular nvim session
+    -- This wipes the cache for a project, so it will force a regeneration of the preview when it is viewed again
+    if not fetched[project_path] then
+      local fetch_job_id = vim.fn.jobstart("git fetch --quiet", {
+        cwd = project_path,
+        detach = true,
+        on_exit = function(_, _, _)
+          -- Clear preview cache to refresh the ahead/behind counts
+          preview_cache[project_path] = nil
+          fetched[project_path] = true
+        end,
+      })
+    end
 
     -- Get ahead/behind counts - use plumbing commands for better performance
     local status_output =
@@ -463,11 +485,6 @@ end
 
 -- Generate project preview content
 function M.generate_project_preview(project_path)
-  -- Process path to make it usable
-  project_path = vim.fn.expand(project_path)
-  project_path = vim.fn.fnamemodify(project_path, ":p")
-  project_path = project_path:gsub("[/\\]$", "")
-
   local output = {}
   local highlights = {}
 
