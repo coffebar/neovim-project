@@ -166,7 +166,7 @@ M.project_previewer = previewers.new_buffer_previewer({
     if preview_cache[project_path] then
       render_preview()
     else
-      self._preview_timer:start(33, 0, vim.schedule_wrap(render_preview))
+      self._preview_timer:start(50, 0, vim.schedule_wrap(render_preview))
     end
   end,
 })
