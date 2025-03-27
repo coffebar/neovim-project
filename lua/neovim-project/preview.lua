@@ -211,11 +211,6 @@ local function get_git_info(project_path)
           -- Clear preview cache to refresh the ahead/behind counts
           preview_cache[project_path] = nil
           fetched[project_path] = true
-
-          -- These commands are idempotent, it is harmless to spam them
-          -- They enable maintenance and fsmonitor, optimizations that speed up fetch and status commands on large repos, and are harmless on small ones
-          vim.fn.system("git -C config core.fsmonitor builtin")
-          vim.fn.system("git -C maintenance start")
         end,
       })
     end

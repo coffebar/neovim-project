@@ -41,7 +41,6 @@ You can install the plugin using your preferred package manager.
     },
     picker = {
       type = "telescope", -- or "fzf-lua"
-      preview = true, -- show directory structure preview in Telescope
     }
   },
   init = function()
@@ -79,7 +78,6 @@ use({
       },
       picker = {
         type = "telescope", -- or "fzf-lua"
-        preview = true, -- show directory structure preview in Telescope
       }
     }
   end,
@@ -112,7 +110,6 @@ use({
       },
       picker = {
         type = "telescope", -- or "fzf-lua"
-        preview = true, -- show directory structure preview in Telescope
       }
     }
   end,
