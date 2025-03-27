@@ -206,7 +206,7 @@ local function get_git_info(project_path)
     if not fetched[project_path] then
       local fetch_job_id = vim.fn.jobstart("git fetch --quiet", {
         cwd = project_path,
-        detach = true,
+        detach = false,
         on_exit = function(_, _, _)
           -- Clear preview cache to refresh the ahead/behind counts
           preview_cache[project_path] = nil

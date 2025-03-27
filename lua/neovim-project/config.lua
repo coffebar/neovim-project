@@ -54,7 +54,7 @@ M.defaults = {
   picker = {
     type = "telescope", -- or "fzf-lua"
     preview = {
-      enabled = false, -- show directory structure preview in Telescope
+      enabled = true, -- show directory structure in Telescope preview
       git_status = true, -- show branch name and the git status of each file/folder
       show_hidden = true, -- show hidden files/folders
     },
