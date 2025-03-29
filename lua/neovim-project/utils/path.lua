@@ -3,6 +3,8 @@ local M = {}
 
 M.datapath = vim.fn.stdpath("data") -- directory
 M.projectpath = M.datapath .. "/neovim-project" -- directory
+M.allprojectsfile = M.projectpath .. "/all-projects.json" -- file
+M.allprojectsmtime = nil
 M.historyfile = M.projectpath .. "/history" -- file
 M.sessionspath = M.datapath .. "/neovim-sessions" --directory
 M.homedir = nil
@@ -11,14 +13,13 @@ M.dir_pretty = nil -- directory of current project (respects user defined symlin
 function M.init()
   M.datapath = vim.fn.expand(require("neovim-project.config").options.datapath)
   M.projectpath = M.datapath .. "/neovim-project" -- directory
+  M.allprojectsfile = M.projectpath .. "/all-projects.json" -- file
   M.historyfile = M.projectpath .. "/history" -- file
   M.sessionspath = M.datapath .. "/neovim-sessions" --directory
   M.homedir = vim.fn.expand("~")
 end
 
 local function is_subdirectory(parent, sub)
-  parent = M.short_path(parent)
-  sub = M.short_path(sub)
   return sub:sub(1, #parent) == parent
 end
 
@@ -46,26 +47,86 @@ M.chdir_closest_parent_project = function(dir)
   local dir_resolved = dir or M.resolve(M.cwd())
   local parent = find_closest_parent(M.get_all_projects(), dir_resolved)
   if parent then
-    M.dir_pretty = M.short_path(parent) -- store path with user defined symlinks
+    M.dir_pretty = parent -- store path with user defined symlinks
     vim.api.nvim_set_current_dir(parent)
   end
   return parent
+end
+
+local function open_cached_projects(mode)
+  M.create_scaffolding()
+  return uv.fs_open(M.allprojectsfile, mode, 438)
+end
+
+local function read_cached_projects()
+  local file = open_cached_projects("r")
+  if file ~= nil then
+    local stat = uv.fs_fstat(file)
+    if stat ~= nil then
+      if M.allprojectsmtime == nil or stat.mtime.nsec > M.allprojectsmtime then
+        M.allprojectsmtime = stat.mtime.nsec
+        local data = uv.fs_read(file, stat.size, -1)
+        if data ~= nil then
+          return vim.json.decode(data)
+        end
+      end
+    end
+    uv.fs_close(file)
+  end
+  return {}
+end
+
+local function write_cached_projects(cached_projects)
+  local file = open_cached_projects("w")
+  if file ~= nil then
+    uv.fs_write(file, vim.json.encode(cached_projects))
+  end
+end
+
+-- Diff between cached patterns and config patterns and
+-- determine the patterns to update.
+local function find_out_changed_patterns(patterns, cached_projects)
+  local added = {}
+  local removed = {}
+  for _, pattern in ipairs(patterns) do
+    if cached_projects[pattern] == nil then
+      table.insert(added, pattern)
+    end
+  end
+  for pattern, _ in pairs(cached_projects) do
+    if not vim.list_contains(patterns, pattern) then
+      table.insert(removed, pattern)
+    end
+  end
+  return added, removed
 end
 
 M.get_all_projects = function()
   -- Get all existing projects from patterns
   local projects = {}
   local patterns = require("neovim-project.config").options.projects
-  for _, pattern in ipairs(patterns) do
+  local cached_projects = read_cached_projects()
+  local added, removed = find_out_changed_patterns(patterns, cached_projects)
+  for _, pattern in ipairs(added) do
+    cached_projects[pattern] = {}
     local tbl = vim.fn.glob(pattern, true, true, true)
     for _, path in ipairs(tbl) do
       if vim.fn.isdirectory(path) == 1 then
         local short = M.short_path(path)
-        if not vim.tbl_contains(projects, short) then
-          table.insert(projects, short)
+        if not vim.list_contains(cached_projects[pattern], short) then
+          table.insert(cached_projects[pattern], short)
         end
       end
     end
+  end
+  for _, pattern in ipairs(removed) do
+    cached_projects[pattern] = nil
+  end
+  if not vim.tbl_isempty(added) or not vim.tbl_isempty(removed) then
+    write_cached_projects(cached_projects)
+  end
+  for _, pattern_projects in pairs(cached_projects) do
+    vim.list_extend(projects, pattern_projects)
   end
   return projects
 end
@@ -167,11 +228,22 @@ M.fix_symlinks_for_history = function(dirs)
   -- Replace paths with paths from `projects` option
   local projects = M.get_all_projects()
   for i, dir in ipairs(dirs) do
-    local dir_resolved = M.resolve(dir)
+    local dir_resolved
     for _, path in ipairs(projects) do
-      if M.resolve(path) == dir_resolved then
+      if path == dir then
         dirs[i] = path
         break
+      else
+        if dir_resolved == nil then
+          dir_resolved = M.resolve(dir)
+        end
+        if path == dir_resolved then
+          dirs[i] = path
+          break
+        elseif M.resolve(path) == dir_resolved then
+          dirs[i] = path
+          break
+        end
       end
     end
   end
