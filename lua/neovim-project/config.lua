@@ -27,6 +27,9 @@ M.defaults = {
     -- normal mode
     n = "d",
   },
+  -- Scan patterns only at startup and store the project list in RAM.
+  -- Set to true if reading the file system takes a long time.
+  project_list_ram_cache = false,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {

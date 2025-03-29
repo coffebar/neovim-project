@@ -7,13 +7,17 @@ M.historyfile = M.projectpath .. "/history" -- file
 M.sessionspath = M.datapath .. "/neovim-sessions" --directory
 M.homedir = nil
 M.dir_pretty = nil -- directory of current project (respects user defined symlinks in config)
+M.project_list_ram_cache = false -- store project list in memory
+M.project_list_cache = {} -- cache for project list
 
 function M.init()
-  M.datapath = vim.fn.expand(require("neovim-project.config").options.datapath)
+  local options = require("neovim-project.config").options
+  M.datapath = vim.fn.expand(options.datapath)
   M.projectpath = M.datapath .. "/neovim-project" -- directory
   M.historyfile = M.projectpath .. "/history" -- file
   M.sessionspath = M.datapath .. "/neovim-sessions" --directory
   M.homedir = vim.fn.expand("~")
+  M.project_list_ram_cache = options.project_list_ram_cache
 end
 
 local function is_subdirectory(parent, sub)
@@ -54,6 +58,9 @@ end
 
 M.get_all_projects = function()
   -- Get all existing projects from patterns
+  if M.project_list_cache and #M.project_list_cache > 0 then
+    return M.project_list_cache
+  end
   local projects = {}
   local patterns = require("neovim-project.config").options.projects
   for _, pattern in ipairs(patterns) do
@@ -66,6 +73,9 @@ M.get_all_projects = function()
         end
       end
     end
+  end
+  if M.project_list_ram_cache then
+    M.project_list_cache = projects
   end
   return projects
 end
