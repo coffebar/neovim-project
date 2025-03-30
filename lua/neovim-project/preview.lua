@@ -74,7 +74,7 @@ M.init = function()
     group = vim.api.nvim_create_augroup("NeovimProjectHighlights", { clear = true }),
   })
 
-  -- Set up an autocmd to clear currect project cache when opening the picker, this ensures that recent changes are visible
+  -- Set up an autocmd to clear current project cache when opening the picker, this ensures that recent changes are visible
   vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
     callback = function()
       clear_caches()
