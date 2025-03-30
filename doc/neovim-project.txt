@@ -1,4 +1,4 @@
-*neovim-project.txt*             For              Last change: 2025 February 22
+*neovim-project.txt*             For              Last change: 2025 March 30
 
 ==============================================================================
 Table of Contents                           *neovim-project-table-of-contents*
@@ -9,12 +9,11 @@ Table of Contents                           *neovim-project-table-of-contents*
   - ⚙️ Configuration|neovim-project-🗃️-neovim-project-manager-plugin-⚙️-configuration|
   - Commands   |neovim-project-🗃️-neovim-project-manager-plugin-commands|
   - ⚡ Requirements|neovim-project-🗃️-neovim-project-manager-plugin-⚡-requirements|
-  - Demo video|neovim-project-🗃️-neovim-project-manager-plugin-demo-video|
   - How to manage dotfiles repo|neovim-project-🗃️-neovim-project-manager-plugin-how-to-manage-dotfiles-repo|
   - 🤝 Contributing|neovim-project-🗃️-neovim-project-manager-plugin-🤝-contributing|
 
 ==============================================================================
-1. 🗃️ Neovim project manager plugin*neovim-project-🗃️-neovim-project-manager-plugin*
+1. 🗃️ Neovim project manager plugin *neovim-project-🗃️-neovim-project-manager-plugin*
 
 **Neovim project** plugin simplifies project management by maintaining project
 history and providing quick access to saved sessions via Telescope
@@ -42,7 +41,7 @@ USAGE             *neovim-project-🗃️-neovim-project-manager-plugin-usage*
 5. Open Neovim in any non-project directory and the latest session will be loaded.
 
 
-📦 INSTALLATION*neovim-project-🗃️-neovim-project-manager-plugin-📦-installation*
+📦 INSTALLATION *neovim-project-🗃️-neovim-project-manager-plugin-📦-installation*
 
 You can install the plugin using your preferred package manager.
 
@@ -141,7 +140,7 @@ pckr.nvim ~
 <
 
 
-⚙️ CONFIGURATION*neovim-project-🗃️-neovim-project-manager-plugin-⚙️-configuration*
+⚙️ CONFIGURATION *neovim-project-🗃️-neovim-project-manager-plugin-⚙️-configuration*
 
 
 DEFAULT OPTIONS: ~
@@ -173,7 +172,7 @@ DEFAULT OPTIONS: ~
         -- normal mode: d
         n = "d"
       },
-    
+
       -- Overwrite some of Session Manager options
       session_manager_opts = {
         autosave_ignore_dirs = {
@@ -231,13 +230,7 @@ Use `Ctrl+d` in Telescope / fzf-lua to delete the project's session and remove i
 - Optional: fzf-lua for the fzf-lua picker
 
 
-DEMO VIDEO   *neovim-project-🗃️-neovim-project-manager-plugin-demo-video*
-
-
-https://github.com/coffebar/neovim-project/assets/3100053/e88ae41a-5606-46c4-a287-4c476ed97ccc
-
-
-HOW TO MANAGE DOTFILES REPO*neovim-project-🗃️-neovim-project-manager-plugin-how-to-manage-dotfiles-repo*
+HOW TO MANAGE DOTFILES REPO *neovim-project-🗃️-neovim-project-manager-plugin-how-to-manage-dotfiles-repo*
 
 If you have a repository for your dotfiles, you will find it convenient to
 access them through projects.
@@ -256,25 +249,25 @@ dotfiles bare repo. Here is an example from my dotfiles:
 
 >lua
     local augroup = vim.api.nvim_create_augroup("user_cmds", { clear = true })
-    
+
     local function update_git_env_for_dotfiles()
       -- Auto change ENV variables to enable
       -- bare git repository for dotfiles after
       -- loading saved session
       local home = vim.fn.expand("~")
       local git_dir = home .. "/dotfiles"
-    
+
       if vim.env.GIT_DIR ~= nil and vim.env.GIT_DIR ~= git_dir then
         return
       end
-    
+
       -- check dotfiles dir exists on current machine
       if vim.fn.isdirectory(git_dir) ~= 1 then
         vim.env.GIT_DIR = nil
         vim.env.GIT_WORK_TREE = nil
         return
       end
-    
+
       -- check if the current working directory should belong to dotfiles
       local cwd = vim.loop.cwd()
       if vim.startswith(cwd, home .. "/.config/") or cwd == home or cwd == home .. "/.local/bin" then
@@ -291,7 +284,7 @@ dotfiles bare repo. Here is an example from my dotfiles:
         end
       end
     end
-    
+
     vim.api.nvim_create_autocmd("DirChanged", {
       pattern = { "*" },
       group = augroup,
@@ -300,7 +293,7 @@ dotfiles bare repo. Here is an example from my dotfiles:
         update_git_env_for_dotfiles()
       end,
     })
-    
+
     vim.api.nvim_create_autocmd("User", {
       pattern = { "SessionLoadPost" },
       group = augroup,
@@ -314,17 +307,13 @@ dotfiles bare repo. Here is an example from my dotfiles:
 This code should be required from your `init.lua` before plugins.
 
 
-🤝 CONTRIBUTING*neovim-project-🗃️-neovim-project-manager-plugin-🤝-contributing*
+🤝 CONTRIBUTING *neovim-project-🗃️-neovim-project-manager-plugin-🤝-contributing*
 
 - Open a ticket if you want integration with another plugin, or if you want to request a new feature.
 - If you encounter bugs please open an issue.
-- Pull requests are welcome.
+- Pull requests are welcome. Follow the Conventional Commits specification for commit naming.
 
 ==============================================================================
-2. Links                                                *neovim-project-links*
-
-1. *Neovim project manager plugin dracula theme*: https://github.com/coffebar/neovim-project/assets/3100053/b75e9373-d694-48e4-abbf-3abfe98ae46f
-2. *Neovim project manager plugin onedark theme*: https://github.com/coffebar/neovim-project/assets/3100053/2bc9b472-071c-4975-97b0-545bd1390053
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 
