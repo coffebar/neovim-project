@@ -1,5 +1,8 @@
 local uv = vim.loop
 local M = {}
+local all_projects_cache = {}
+local ram_cache_lifetime = 5
+local last_scan_timestamp = 0
 
 M.datapath = vim.fn.stdpath("data") -- directory
 M.projectpath = M.datapath .. "/neovim-project" -- directory
@@ -39,19 +42,6 @@ local function find_closest_parent(directories, subdirectory)
   return closest_parent
 end
 
-M.chdir_closest_parent_project = function(dir)
-  -- returns the parent project and chdir to that parent
-  -- if no parent project returns nil
-  -- if dir is a project return dir
-  local dir_resolved = dir or M.resolve(M.cwd())
-  local parent = find_closest_parent(M.get_all_projects(), dir_resolved)
-  if parent then
-    M.dir_pretty = M.short_path(parent) -- store path with user defined symlinks
-    vim.api.nvim_set_current_dir(parent)
-  end
-  return parent
-end
-
 M.get_all_projects = function()
   -- Get all existing projects from patterns
   local projects = {}
@@ -70,10 +60,42 @@ M.get_all_projects = function()
   return projects
 end
 
+local write_all_project_list_to_file = function(projects)
+  local filename = M.projectpath .. "/.project-list.cache"
+  local file = io.open(filename, "w")
+  if file then
+    for _, project in ipairs(projects) do
+      file:write(project .. "\n")
+    end
+    file:close()
+  end
+end
+
+local get_all_projects_with_ram_cache = function()
+  -- read filesystem only if the cache is older than 5 seconds
+  local current_time = os.time()
+  if current_time - last_scan_timestamp > ram_cache_lifetime then
+    local projects = M.get_all_projects()
+    if last_scan_timestamp > 0 then
+      -- update the peresistent cache if project list has changed
+      local old_projects = all_projects_cache
+      vim.defer_fn(function()
+        if not vim.deep_equal(old_projects, projects) then
+          -- update persistent cache
+          write_all_project_list_to_file(projects)
+        end
+      end, 100)
+    end
+    all_projects_cache = projects
+    last_scan_timestamp = current_time
+  end
+  return all_projects_cache
+end
+
 M.get_all_projects_with_sorting = function()
   -- Get all projects but with specific sorting
   local sorting = require("neovim-project.config").options.picker.opts.sorting
-  local all_projects = M.get_all_projects()
+  local all_projects = get_all_projects_with_ram_cache()
 
   -- Sort by most recent projects first
   if sorting == "history" then
@@ -165,7 +187,7 @@ end
 
 M.fix_symlinks_for_history = function(dirs)
   -- Replace paths with paths from `projects` option
-  local projects = M.get_all_projects()
+  local projects = get_all_projects_with_ram_cache()
   for i, dir in ipairs(dirs) do
     local dir_resolved = M.resolve(dir)
     for _, path in ipairs(projects) do
@@ -177,6 +199,41 @@ M.fix_symlinks_for_history = function(dirs)
   end
   -- remove duplicates
   return M.delete_duplicates(dirs)
+end
+
+-- Get all projects with persistent cache
+-- to avoid reading the filesystem on startup, except for the first time
+local get_all_projects_with_peresistent_cache = function()
+  local filename = M.projectpath .. "/.project-list.cache"
+  -- if file exists, read it and return the contents as a table
+  -- otherwise, create the file and write the projects to it
+  local file = io.open(filename, "r")
+  if file then
+    local projects = {}
+    for line in file:lines() do
+      table.insert(projects, line)
+    end
+    file:close()
+    return projects
+  else
+    -- create the file and write the projects to it
+    local projects = get_all_projects_with_ram_cache()
+    write_all_project_list_to_file(projects)
+    return projects
+  end
+end
+
+M.chdir_closest_parent_project = function(dir)
+  -- returns the parent project and chdir to that parent
+  -- if no parent project returns nil
+  -- if dir is a project return dir
+  local dir_resolved = dir or M.resolve(M.cwd())
+  local parent = find_closest_parent(get_all_projects_with_peresistent_cache(), dir_resolved)
+  if parent then
+    M.dir_pretty = M.short_path(parent) -- store path with user defined symlinks
+    vim.api.nvim_set_current_dir(parent)
+  end
+  return parent
 end
 
 return M

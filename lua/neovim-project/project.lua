@@ -235,7 +235,7 @@ M.create_commands = function()
   -- Open the project from all projects by name
   vim.api.nvim_create_user_command("NeovimProjectLoad", function(args)
     local arg = args.args
-    local allprojects = path.get_all_projects()
+    local allprojects = path.get_all_projects_with_sorting()
     local projects = {}
     for _, v in ipairs(allprojects) do
       local val = string.gsub(v, "\\", "/")
@@ -251,7 +251,7 @@ M.create_commands = function()
     nargs = 1,
     complete = function()
       local projects = {}
-      local allprojects = path.get_all_projects()
+      local allprojects = path.get_all_projects_with_sorting()
       for _, v in ipairs(allprojects) do
         local val = string.gsub(v, "\\", "/")
         table.insert(projects, val)
@@ -268,10 +268,10 @@ M.create_commands = function()
     -- Default sorting based on patterns
     config.options.picker.opts.sorting = args.args or "default"
     picker.create_picker(args, true, M.switch_project)
-    end, {
-      nargs = "?",
-      complete = function()
-        return { "default", "history", "alphabetical_name", "alphabetical_path" }
+  end, {
+    nargs = "?",
+    complete = function()
+      return { "default", "history", "alphabetical_name", "alphabetical_path" }
     end,
   })
 end
