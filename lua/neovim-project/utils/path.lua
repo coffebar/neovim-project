@@ -10,6 +10,7 @@ M.historyfile = M.projectpath .. "/history" -- file
 M.sessionspath = M.datapath .. "/neovim-sessions" --directory
 M.homedir = nil
 M.dir_pretty = nil -- directory of current project (respects user defined symlinks in config)
+M._VimLeavePre = false -- flag to check if VimLeavePre was called
 
 function M.init()
   M.datapath = vim.fn.expand(require("neovim-project.config").options.datapath)
@@ -76,7 +77,7 @@ local get_all_projects_with_ram_cache = function()
   local current_time = os.time()
   if current_time - last_scan_timestamp > ram_cache_lifetime then
     local projects = M.get_all_projects()
-    if last_scan_timestamp > 0 then
+    if last_scan_timestamp > 0 and not M._VimLeavePre then
       -- update the peresistent cache if project list has changed
       local old_projects = all_projects_cache
       vim.defer_fn(function()
@@ -201,6 +202,14 @@ M.fix_symlinks_for_history = function(dirs)
   return M.delete_duplicates(dirs)
 end
 
+M.write_persistent_cache = function()
+  -- update the persistent cache file
+  local projects = get_all_projects_with_ram_cache()
+  write_all_project_list_to_file(projects)
+  -- return the projects
+  return projects
+end
+
 -- Get all projects with persistent cache
 -- to avoid reading the filesystem on startup, except for the first time
 local get_all_projects_with_peresistent_cache = function()
@@ -217,9 +226,7 @@ local get_all_projects_with_peresistent_cache = function()
     return projects
   else
     -- create the file and write the projects to it
-    local projects = get_all_projects_with_ram_cache()
-    write_all_project_list_to_file(projects)
-    return projects
+    return M.write_persistent_cache()
   end
 end
 
