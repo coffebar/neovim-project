@@ -11,14 +11,7 @@ M.sessionspath = M.datapath .. "/neovim-sessions" --directory
 M.homedir = nil
 M.dir_pretty = nil -- directory of current project (respects user defined symlinks in config)
 M._VimLeavePre = false -- flag to check if VimLeavePre was called
-
-function M.init()
-  M.datapath = vim.fn.expand(require("neovim-project.config").options.datapath)
-  M.projectpath = M.datapath .. "/neovim-project" -- directory
-  M.historyfile = M.projectpath .. "/history" -- file
-  M.sessionspath = M.datapath .. "/neovim-sessions" --directory
-  M.homedir = vim.fn.expand("~")
-end
+M.all_projects_cache_file = nil -- file to store all projects list for persistent cache
 
 local function is_subdirectory(parent, sub)
   parent = M.short_path(parent)
@@ -43,6 +36,12 @@ local function find_closest_parent(directories, subdirectory)
   return closest_parent
 end
 
+local function patterns_signature()
+  local patterns = require("neovim-project.config").options.projects
+  local sig = vim.fn.sha256(vim.fn.join(patterns, "|"))
+  return sig:sub(1, 12)
+end
+
 M.get_all_projects = function()
   -- Get all existing projects from patterns
   local projects = {}
@@ -61,14 +60,29 @@ M.get_all_projects = function()
   return projects
 end
 
+function M.init()
+  M.datapath = vim.fn.expand(require("neovim-project.config").options.datapath)
+  M.projectpath = M.datapath .. "/neovim-project" -- directory
+  M.historyfile = M.projectpath .. "/history" -- file
+  M.sessionspath = M.datapath .. "/neovim-sessions" --directory
+  M.homedir = vim.fn.expand("~")
+  M.all_projects_cache_file = M.projectpath .. "/.project-list." .. patterns_signature() .. ".cache"
+end
+
 local write_all_project_list_to_file = function(projects)
-  local filename = M.projectpath .. "/.project-list.cache"
-  local file = io.open(filename, "w")
+  local file = io.open(M.all_projects_cache_file, "w")
   if file then
     for _, project in ipairs(projects) do
       file:write(project .. "\n")
     end
     file:close()
+    -- remove irrelevant cache files
+    local files = vim.fn.glob(M.projectpath .. "/.project-list*.cache", true, true, true)
+    for _, filename in ipairs(files) do
+      if filename ~= M.all_projects_cache_file then
+        os.remove(filename)
+      end
+    end
   end
 end
 
@@ -213,10 +227,9 @@ end
 -- Get all projects with persistent cache
 -- to avoid reading the filesystem on startup, except for the first time
 local get_all_projects_with_peresistent_cache = function()
-  local filename = M.projectpath .. "/.project-list.cache"
   -- if file exists, read it and return the contents as a table
   -- otherwise, create the file and write the projects to it
-  local file = io.open(filename, "r")
+  local file = io.open(M.all_projects_cache_file, "r")
   if file then
     local projects = {}
     for line in file:lines() do
