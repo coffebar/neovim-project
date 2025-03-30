@@ -74,7 +74,7 @@ M.init = function()
     group = vim.api.nvim_create_augroup("NeovimProjectHighlights", { clear = true }),
   })
 
-  -- Set up an autocmd to clear caches periodically
+  -- Set up an autocmd to clear currect project cache when opening the picker, this ensures that recent changes are visible
   vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
     callback = function()
       clear_caches()
@@ -89,7 +89,7 @@ local function get_icon_provider()
   -- prefer mini.icons
   local _, mini_icons = pcall(require, "mini.icons")
   ---@diagnostic disable-next-line: undefined-field
-  if _G.MiniIcons then -- `_G.MiniIcons` is a better check to see if the module is setup
+  if _G.MiniIcons then
     return function(type, name)
       return mini_icons.get(type, name)
     end
@@ -173,7 +173,6 @@ M.project_previewer = previewers.new_buffer_previewer({
 
 -- Get the current git branch and status for a project path
 local function get_git_info(project_path)
-  local current_dir = vim.fn.getcwd()
   local result = {
     is_repo = false,
     branch = "",
@@ -182,18 +181,17 @@ local function get_git_info(project_path)
     status = "",
   }
 
-  vim.fn.chdir(project_path)
-
   -- Get branch name
-  local is_git_repo = vim.fn.system("git rev-parse --is-inside-work-tree"):match("true")
+  local is_git_repo =
+    vim.fn.system("git -C " .. vim.fn.shellescape(project_path) .. " rev-parse --is-inside-work-tree"):match("true")
   if not is_git_repo then
-    vim.fn.chdir(current_dir)
     return result
   end
 
   result.is_repo = true
 
-  local branch_name = vim.fn.system("git branch --show-current"):gsub("\n", "")
+  local branch_name =
+    vim.fn.system("git -C " .. vim.fn.shellescape(project_path) .. " branch --show-current"):gsub("\n", "")
 
   -- Only proceed if we have a valid branch
   if branch_name ~= "" then
@@ -215,11 +213,16 @@ local function get_git_info(project_path)
       })
     end
 
-    -- Get ahead/behind counts - use plumbing commands for better performance
-    local status_output =
-      vim.fn.system("git rev-list --left-right --count origin/" .. branch_name .. "..." .. branch_name .. " ")
+    -- Get ahead/behind counts
+    local status_output = vim.fn.system(
+      "git -C "
+        .. vim.fn.shellescape(project_path)
+        .. " rev-list --left-right --count origin/"
+        .. branch_name
+        .. "..."
+        .. branch_name
+    )
 
-    -- Parse the output which is in format "N M" where N is behind and M is ahead
     local behind, ahead = status_output:match("(%d+)%s+(%d+)")
     if tonumber(behind) then
       result.behind = tonumber(behind)
@@ -229,9 +232,7 @@ local function get_git_info(project_path)
     end
   end
 
-  result.status = vim.fn.system("git status --porcelain=v1")
-
-  vim.fn.chdir(current_dir)
+  result.status = vim.fn.system("git -C " .. vim.fn.shellescape(project_path) .. " status --porcelain=v1")
 
   return result
 end
@@ -251,8 +252,8 @@ local function generate_preview_header(project_path)
   local title_end = title_start + title_width
 
   table.insert(header_highlights, {
-    line = 0, -- 0-indexed line number
-    hl = "NeovimProjectTitle", -- Use our custom highlight group
+    line = 0,
+    hl = "NeovimProjectTitle",
     start_col = title_start,
     end_col = title_end,
   })
@@ -284,15 +285,15 @@ local function generate_preview_header(project_path)
       local sync_start = branch_end
       local sync_end = sync_start + sync_width
       table.insert(header_highlights, {
-        line = 0, -- 0-indexed line number
-        hl = "NeovimProjectBranch", -- Use our custom highlight group
+        line = 0,
+        hl = "NeovimProjectBranch",
         start_col = branch_start,
         end_col = branch_end,
       })
 
       table.insert(header_highlights, {
-        line = 0, -- 0-indexed line number
-        hl = "NeovimProjectChanged", -- Use our custom highlight group
+        line = 0,
+        hl = "NeovimProjectChanged",
         start_col = sync_start,
         end_col = sync_end,
       })
@@ -306,7 +307,6 @@ end
 
 local function prep_items(project_path, items, git_status)
   local result = {}
-  -- Pre-allocate the table size for better performance
   for _, item in ipairs(items) do
     result[item] = {
       is_dir = vim.fn.isdirectory(project_path .. "/" .. item) == 1,
@@ -315,12 +315,10 @@ local function prep_items(project_path, items, git_status)
     }
   end
 
-  -- For each top level file/folder in git_status, check if it is in items, if not, add it to the items list
   if not git_status or git_status == "" then
     return result
   end
 
-  -- Optimize status code normalization
   local status_map = {
     ["??"] = "A", -- Untracked files are treated as Added
     ["A"] = "A", -- Added
@@ -367,7 +365,7 @@ local function prep_items(project_path, items, git_status)
     end
   end
 
-  -- Parse git status output line by line - optimize by avoiding pattern matching where possible
+  -- Parse git status output line by line
   for line in git_status:gmatch("[^\r\n]+") do
     if #line >= 3 then
       local status_code = line:sub(1, 2)
@@ -389,7 +387,6 @@ local function prep_items(project_path, items, git_status)
     end
   end
 
-  -- Process git status in a single pass
   for item_name, item_data in pairs(result) do
     item_data.git_status = git_status_display(item_data.git_status, item_data.deleted, item_data.is_dir)
   end
@@ -402,7 +399,6 @@ local function generate_preview_body(project_path, git_info)
   local highlights = {}
 
   local items = prep_items(project_path, vim.fn.readdir(project_path), git_info.status)
-  -- Separate directories and files
   local directories = {}
   local files = {}
   for name, properties in pairs(items) do
