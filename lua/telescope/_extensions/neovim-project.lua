@@ -16,7 +16,7 @@ local history = require("neovim-project.utils.history")
 local preview = require("neovim-project.preview")
 local project = require("neovim-project.project")
 
-local show_preview = require("neovim-project.config").options.picker.preview
+local show_preview = require("neovim-project.config").options.picker.preview.enabled
 
 ----------
 -- Actions

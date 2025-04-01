@@ -41,7 +41,6 @@ You can install the plugin using your preferred package manager.
     },
     picker = {
       type = "telescope", -- or "fzf-lua"
-      preview = true, -- show directory structure preview in Telescope
     }
   },
   init = function()
@@ -79,7 +78,6 @@ use({
       },
       picker = {
         type = "telescope", -- or "fzf-lua"
-        preview = true, -- show directory structure preview in Telescope
       }
     }
   end,
@@ -112,7 +110,6 @@ use({
       },
       picker = {
         type = "telescope", -- or "fzf-lua"
-        preview = true, -- show directory structure preview in Telescope
       }
     }
   end,
@@ -181,7 +178,11 @@ use({
   -- Fallback to builtin select ui if the specified picker is not available
   picker = {
     type = "telescope", -- or "fzf-lua"
-    preview = true, -- show directory structure preview in Telescope
+    preview = {
+      enabled = true, -- show directory structure in Telescope preview
+      git_status = true, -- show branch name, an ahead/behind counter, and the git status of each file/folder
+      show_hidden = true, -- show hidden files/folders
+    },
     opts = {
       -- picker-specific options
     },
