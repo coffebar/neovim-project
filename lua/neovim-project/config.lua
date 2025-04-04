@@ -10,6 +10,11 @@ M.defaults = {
     "~/.config/*",
     "~/work/*",
   },
+  -- Whether or not to follow symlinks in the project glob patterns
+  -- "full" or true - follow symlinks in all matched directories
+  -- "partial" - follow symlinks before any matching operators (*, ?, [])
+  -- "none" or false or nil - do not follow symlinks
+  follow_symlinks = "full",
   -- Path to store history and sessions
   datapath = vim.fn.stdpath("data"), -- ~/.local/share/nvim/
   -- Load the most recent session on startup if not in the project directory

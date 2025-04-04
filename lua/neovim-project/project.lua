@@ -25,8 +25,6 @@ M.setup_autocmds = function()
     pattern = "*",
     group = augroup,
     callback = function()
-      path._VimLeavePre = true
-      path.write_persistent_cache()
       history.write_projects_to_history()
     end,
   })
