@@ -157,6 +157,11 @@ use({
       -- normal mode: d
       n = "d"
   },
+  -- Follow symbolic links in glob patterns (affects startup speed)
+  -- "full" or true - follow symlinks in all matched directories
+  -- "partial" - follow symlinks before any matching operators (*, ?, [])
+  -- "none" or false or nil - do not follow symlinks
+  follow_symlinks = "full",
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {
