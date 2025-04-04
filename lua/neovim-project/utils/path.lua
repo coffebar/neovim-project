@@ -278,7 +278,7 @@ M.fix_symlinks_for_history = function(dirs)
   if follow_symlinks == true or follow_symlinks == "full" then
     local projects = M.get_all_projects()
     for i, dir in ipairs(dirs) do
-      local dir_resolved = M.resolve(dir)
+      local dir_resolved
       for _, path in ipairs(projects) do
         local path_resolved
         if dir_resolved == nil then
@@ -286,25 +286,25 @@ M.fix_symlinks_for_history = function(dirs)
             if path == dir then
               dirs[i] = path
               break
-            else
-              path_resolved = M.resolve(path)
-              if path_resolved == dir then
-                dirs[i] = path
-                break
-              end
             end
+            path_resolved = M.resolve(path)
           end
-          dir_resolved = M.resolve(dir)
-        else
-          if path_resolved == nil then
-            if path == dir_resolved then
-              dirs[i] = path
-              break
-            end
-          elseif path_resolved == dir_resolved then
+          if path_resolved == dir then
             dirs[i] = path
             break
           end
+          dir_resolved = M.resolve(dir)
+        end
+        if path_resolved == nil then
+          if path == dir_resolved then
+            dirs[i] = path
+            break
+          end
+          path_resolved = M.resolve(path)
+        end
+        if path_resolved == dir_resolved then
+          dirs[i] = path
+          break
         end
       end
     end
