@@ -23,6 +23,10 @@ local function wildcard_to_pattern(wildcard, resolve, eol)
 
   -- Expand to absolute path, fnamemodify can work with wildcards
   local pattern = vim.fn.fnamemodify(wildcard, ":p")
+  local pattern_end = pattern:sub(#pattern, #pattern)
+  if pattern_end == "/" or pattern_end == "\\" then
+    pattern = pattern:sub(1, #pattern - 1)
+  end
 
   if resolve then
     -- It turns out that `vim.fn.resolve` can actually resolve the "prefix" even if it is a wildcard
