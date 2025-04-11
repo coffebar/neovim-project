@@ -201,7 +201,7 @@ local function get_git_info(project_path)
     -- Done asynchronously to prevent freezing UI
     -- This will fetch once per project during a particular nvim session
     -- This wipes the cache for a project, so it will force a regeneration of the preview when it is viewed again
-    if not fetched[project_path] then
+    if config.options.picker.preview.git_fetch and not fetched[project_path] then
       local fetch_job_id = vim.fn.jobstart("git fetch --quiet", {
         cwd = project_path,
         detach = false,
