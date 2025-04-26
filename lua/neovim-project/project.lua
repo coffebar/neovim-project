@@ -7,6 +7,7 @@ local payload = require("neovim-project.payload")
 local utils = require("session_manager.utils")
 local config = require("neovim-project.config")
 local picker = require("neovim-project.picker")
+local showkeys = require("neovim-project.utils.showkeys")
 
 M.save_project_waiting = false
 
@@ -47,16 +48,19 @@ M.setup_autocmds = function()
       M.save_project_waiting = true
     end,
   })
-  -- add more state data to the session file via global variable
+  -- 1. Add state data to the session file via global variable
+  -- 2. Workaround for showkeys plugin: close the buffer and save it's state
   vim.api.nvim_create_autocmd({ "User" }, {
     pattern = "SessionSavePre",
     group = augroup,
     callback = function()
       payload.pre_save()
+      showkeys.pre_save()
     end,
   })
   -- 1. Trigger FileType autocmd to attach lsp server to the active buffer
   -- 2. Restore saved state data from the global var in the session file
+  -- 3. Workaround for showkeys plugin: reopen the it's buffer
   vim.api.nvim_create_autocmd({ "User" }, {
     pattern = "SessionLoadPost",
     group = augroup,
@@ -70,6 +74,7 @@ M.setup_autocmds = function()
       if path.dir_pretty == nil then
         path.dir_pretty = path.cwd()
       end
+      showkeys.post_load()
     end,
   })
   -- Exit from session when directory changed from outside
