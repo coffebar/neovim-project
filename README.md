@@ -3,7 +3,7 @@
 **Neovim project** plugin simplifies project management by maintaining project history and providing quick access to saved sessions via [Telescope](https://github.com/nvim-telescope/telescope.nvim) or [fzf-lua](https://github.com/ibhagwan/fzf-lua). It runs on top of the [Neovim Session Manager](https://github.com/Shatur/neovim-session-manager), which is needed to store all open tabs and buffers for each project.
 
 - ✅ Start where you left off last time.
-- ✅ Switch from project to project in second.
+- ✅ Switch from project to project in a second.
 - ✅ Sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
 - ✅ Find all your projects by glob patterns defined in config.
 - ✅ Autosave **neo-tree.nvim** expanded directories and buffers order in **barbar.nvim**.
