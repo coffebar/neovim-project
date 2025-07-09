@@ -87,8 +87,7 @@ local function delete_project(prompt_bufnr)
   local choice = vim.fn.confirm("Delete '" .. dir .. "' from project list?", "&Yes\n&No", 2)
 
   if choice == 1 then
-    history.delete_project(dir)
-    project.delete_session(dir)
+    require("neovim-project.picker").delete_confirmed_project(dir)
 
     local finder = create_finder(false)
     state.get_current_picker(prompt_bufnr):refresh(finder, {

@@ -110,11 +110,11 @@ local function switch_project_callback(dir)
 end
 
 function M.show_history()
-  picker.create_picker({}, false, switch_project_callback, M.delete_session)
+  picker.create_picker({}, false, switch_project_callback)
 end
 
 function M.discover_projects()
-  picker.create_picker({}, true, switch_project_callback, M.delete_session)
+  picker.create_picker({}, true, switch_project_callback)
 end
 
 M.delete_session = function(dir)

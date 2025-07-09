@@ -3,16 +3,24 @@ local config = require("neovim-project.config")
 local path = require("neovim-project.utils.path")
 local history = require("neovim-project.utils.history")
 
-function M.create_picker(opts, discover, callback, delete_session_func)
+-- Function to delete a project from the session and history
+-- Does not delete the actual project directory
+function M.delete_confirmed_project(dir)
+  local project = require("neovim-project.project")
+  project.delete_session(dir)
+  history.delete_project(dir)
+end
+
+function M.create_picker(opts, discover, callback)
   local picker = config.options.picker.type
   local picker_opts = vim.tbl_deep_extend("force", config.options.picker.opts or {}, opts or {})
 
   if picker == "telescope" and pcall(require, "telescope") then
     return M.create_telescope_picker(picker_opts, discover)
   elseif picker == "fzf-lua" and pcall(require, "fzf-lua") then
-    return M.create_fzf_lua_picker(picker_opts, discover, callback, delete_session_func)
+    return M.create_fzf_lua_picker(picker_opts, discover, callback)
   else
-    return M.create_builtin_picker(picker_opts, discover, callback, delete_session_func)
+    return M.create_builtin_picker(picker_opts, discover, callback)
   end
 end
 
@@ -25,7 +33,7 @@ function M.create_telescope_picker(opts, discover)
   end
 end
 
-function M.create_fzf_lua_picker(opts, discover, callback, delete_session_func)
+function M.create_fzf_lua_picker(opts, discover, callback)
   local fzf = require("fzf-lua")
 
   local results
@@ -62,10 +70,9 @@ function M.create_fzf_lua_picker(opts, discover, callback, delete_session_func)
           local dir = selected[1]:match("\t(.+)$")
           local choice = vim.fn.confirm("Delete '" .. dir .. "' from project list?", "&Yes\n&No", 2)
           if choice == 1 then
-            history.delete_project(dir)
-            delete_session_func(dir)
+            M.delete_confirmed_project(dir)
             -- Refresh the picker
-            M.create_fzf_lua_picker(opts, discover, callback, delete_session_func)
+            M.create_fzf_lua_picker(opts, discover, callback)
           end
         end
       end,
@@ -83,7 +90,7 @@ function M.create_fzf_lua_picker(opts, discover, callback, delete_session_func)
   fzf.fzf_exec(formatted_results, merged_opts)
 end
 
-function M.create_builtin_picker(opts, discover, callback, delete_session_func)
+function M.create_builtin_picker(opts, discover, callback)
   local results
   if discover then
     results = path.get_all_projects_with_sorting()
@@ -121,10 +128,9 @@ function M.create_builtin_picker(opts, discover, callback, delete_session_func)
       if choice then
         local confirm = vim.fn.confirm("Delete '" .. choice .. "' from project list?", "&Yes\n&No", 2)
         if confirm == 1 then
-          history.delete_project(choice)
-          delete_session_func(choice)
+          M.delete_confirmed_project(choice)
           -- Refresh the picker
-          M.create_builtin_picker(opts, discover, callback, delete_session_func)
+          M.create_builtin_picker(opts, discover, callback)
         else
           -- Go back to project selection
           select_project()
