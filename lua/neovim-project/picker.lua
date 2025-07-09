@@ -67,6 +67,10 @@ function M.create_fzf_lua_picker(opts, discover, callback)
       end,
       ["ctrl-d"] = function(selected)
         if selected and #selected > 0 then
+          if discover then
+            vim.notify("Cannot delete projects from discovery mode", vim.log.levels.WARN)
+            return
+          end
           local dir = selected[1]:match("\t(.+)$")
           local choice = vim.fn.confirm("Delete '" .. dir .. "' from project list?", "&Yes\n&No", 2)
           if choice == 1 then
