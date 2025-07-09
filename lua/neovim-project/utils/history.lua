@@ -26,14 +26,21 @@ M.add_session_project = function(dir)
 end
 
 M.delete_project = function(dir)
-  for k, v in pairs(M.recent_projects) do
-    if v == dir then
-      M.recent_projects[k] = nil
+  if dir == nil or dir == "" then
+    return
+  end
+  if M.recent_projects then
+    for k, v in pairs(M.recent_projects) do
+      if v == dir then
+        M.recent_projects[k] = nil
+      end
     end
   end
-  for k, v in pairs(M.session_projects) do
-    if v == dir then
-      M.session_projects[k] = nil
+  if M.session_projects then
+    for k, v in pairs(M.session_projects) do
+      if v == dir then
+        M.session_projects[k] = nil
+      end
     end
   end
 end
