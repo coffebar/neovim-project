@@ -64,6 +64,7 @@ end
 
 function M.create_fzf_lua_picker(opts, discover, callback)
   local fzf = require("fzf-lua")
+  local show_preview = config.options.picker.preview.enabled
 
   local function format_entry(entry)
     local name = vim.fn.fnamemodify(entry, ":t")
@@ -98,10 +99,133 @@ function M.create_fzf_lua_picker(opts, discover, callback)
     fzf_opts = {
       ["--delimiter"] = "\t",
       ["--with-nth"] = "1",
-      ["--preview"] = "echo {}",
-      ["--preview-window"] = "hidden:right:0",
     },
   }
+  -- Configure preview based on settings
+  if show_preview then
+    local preview = require("neovim-project.preview")
+
+    -- Initialize preview module if needed
+    if not preview.initialized then
+      preview.init()
+    end
+
+    -- Set up the previewer constructor
+    default_opts.previewer = {
+      _ctor = function()
+        local builtin = require("fzf-lua.previewer.builtin")
+        local ProjectPreviewer = builtin.buffer_or_file:extend()
+
+        function ProjectPreviewer:new(o, opts, fzf_win)
+          ProjectPreviewer.super.new(self, o, opts, fzf_win)
+          -- Initialize session cache and timer
+          self.preview_cache = {}
+          self.preview_timer = vim.loop.new_timer()
+          -- Create a single persistent preview buffer
+          self.persistent_bufnr = self:get_tmp_buffer()
+          return self
+        end
+
+        function ProjectPreviewer:close()
+          if self.preview_timer then
+            self.preview_timer:stop()
+            self.preview_timer:close()
+            self.preview_timer = nil
+          end
+          -- Clear cache on close to free memory
+          self.preview_cache = {}
+          -- Also clear the module-level cache
+          preview.clear_cache()
+          ProjectPreviewer.super.close(self)
+        end
+
+        function ProjectPreviewer:populate_preview_buf(entry_str)
+          -- Extract the path from the formatted entry
+          local path = entry_str:match("\t(.+)$")
+          if not path then
+            return
+          end
+
+          -- Use the shared expand_path function
+          path = preview.expand_path(path)
+
+          -- Track the current path being previewed to avoid race conditions
+          self.current_preview_path = path
+
+          -- Always use the persistent buffer
+          local bufnr = self.persistent_bufnr
+          if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+            return
+          end
+
+          -- If we have cached data, show it immediately
+          if self.preview_cache[path] then
+            local preview_data = self.preview_cache[path]
+            vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, preview_data.lines)
+            preview.apply_highlights(bufnr, preview_data.highlights)
+            self:set_preview_buf(bufnr)
+            return
+          end
+
+          -- Show loading state immediately
+          local project_name = vim.fn.fnamemodify(path, ":t")
+          vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+            "Loading preview for " .. project_name .. "...",
+            "",
+            "Please wait..."
+          })
+          self:set_preview_buf(bufnr)
+
+          -- Start async preview generation
+          vim.defer_fn(function()
+            local ok, preview_data = pcall(preview.generate_project_preview, path)
+
+            -- Cache the result regardless of whether it's still the current selection
+            if ok and preview_data and preview_data.lines then
+              self.preview_cache[path] = preview_data
+            else
+              self.preview_cache[path] = {
+                lines = {
+                  "Error generating preview for: " .. project_name,
+                  "",
+                  "Error details:",
+                  tostring(preview_data or "Unknown error")
+                },
+                highlights = {}
+              }
+            end
+
+            -- Only update display if this is still the current selection
+            if self.current_preview_path == path then
+              vim.schedule(function()
+                -- Use the same persistent buffer
+                if vim.api.nvim_buf_is_valid(bufnr) then
+                  local cached_data = self.preview_cache[path]
+                  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, cached_data.lines)
+                  preview.apply_highlights(bufnr, cached_data.highlights)
+                  self:set_preview_buf(bufnr)
+                end
+              end)
+            end
+          end, 0)
+        end
+
+        return ProjectPreviewer
+      end
+    }
+    default_opts.winopts = {
+      preview = {
+        hidden = "nohidden"
+      }
+    }
+  else
+    -- Hide preview if disabled
+    default_opts.winopts = {
+      preview = {
+        hidden = "hidden"
+      }
+    }
+  end
 
   local merged_opts = vim.tbl_deep_extend("force", default_opts, opts or {})
 

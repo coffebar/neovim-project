@@ -4,7 +4,7 @@ local previewers = require("telescope.previewers")
 local config = require("neovim-project.config")
 local history = require("neovim-project.utils.history")
 
-local initialized = false
+M.initialized = false
 local preview_cache = {}
 local fetched = {}
 
@@ -61,9 +61,37 @@ function M.define_preview_highlighting()
   })
 end
 
+-- Namespace for preview highlights
+local preview_ns_id = vim.api.nvim_create_namespace("neovim_project_preview")
+
+-- Apply highlights to a buffer
+M.apply_highlights = function(bufnr, highlights)
+  vim.api.nvim_buf_clear_namespace(bufnr, preview_ns_id, 0, -1)
+  for _, hl_info in ipairs(highlights) do
+    vim.api.nvim_buf_add_highlight(
+      bufnr,
+      preview_ns_id,
+      hl_info.hl,
+      hl_info.line,
+      hl_info.start_col,
+      hl_info.end_col
+    )
+  end
+end
+
+-- Export the expand_path function for reuse
+M.expand_path = expand_path
+
+-- Function to clear preview cache
+M.clear_cache = function()
+  preview_cache = {}
+  fetched = {}
+end
+
 M.init = function()
   M.define_preview_highlighting()
   clear_caches()
+  M.initialized = true
 
   -- autocmd to enforce proper highlighting when changing colorschemes
   vim.api.nvim_create_autocmd("ColorScheme", {
@@ -121,9 +149,8 @@ M.project_previewer = previewers.new_buffer_previewer({
     return entry.value
   end,
   define_preview = function(self, entry)
-    if not initialized then
+    if not M.initialized then
       M.init()
-      initialized = true
     end
 
     local project_path = entry.value
@@ -148,19 +175,7 @@ M.project_previewer = previewers.new_buffer_previewer({
         vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, preview_cache[project_path].lines)
 
         -- Apply highlights
-        local ns_id = vim.api.nvim_create_namespace("neovim_project_preview")
-        vim.api.nvim_buf_clear_namespace(self.state.bufnr, ns_id, 0, -1)
-
-        for _, hl_info in ipairs(preview_cache[project_path].highlights) do
-          vim.api.nvim_buf_add_highlight(
-            self.state.bufnr,
-            ns_id,
-            hl_info.hl,
-            hl_info.line,
-            hl_info.start_col,
-            hl_info.end_col
-          )
-        end
+        M.apply_highlights(self.state.bufnr, preview_cache[project_path].highlights)
       end
     end
     if preview_cache[project_path] then
