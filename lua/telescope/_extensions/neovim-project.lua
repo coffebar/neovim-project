@@ -105,7 +105,7 @@ local function project_history(opts)
     .new(opts, {
       prompt_title = "Recent Projects",
       finder = create_finder(false),
-      previewer = show_preview and preview.project_previewer,
+      previewer = show_preview and preview.get_telescope_previewer(),
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr, map)
         local config = require("neovim-project.config")
@@ -118,8 +118,17 @@ local function project_history(opts)
 
         local on_project_selected = function()
           change_working_directory(prompt_bufnr)
+          preview.clear_all_caches()
         end
         actions.select_default:replace(on_project_selected)
+
+        -- Clear cache on close
+        actions.close:enhance({
+          post = function()
+            preview.clear_all_caches()
+          end,
+        })
+
         return true
       end,
     })
@@ -134,13 +143,22 @@ local function project_discover(opts)
     .new(opts, {
       prompt_title = "Discover Projects",
       finder = create_finder(true),
-      previewer = show_preview and preview.project_previewer,
+      previewer = show_preview and preview.get_telescope_previewer(),
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr)
         local on_project_selected = function()
           change_working_directory(prompt_bufnr)
+          preview.clear_all_caches()
         end
         actions.select_default:replace(on_project_selected)
+
+        -- Clear cache on close
+        actions.close:enhance({
+          post = function()
+            preview.clear_all_caches()
+          end,
+        })
+
         return true
       end,
     })

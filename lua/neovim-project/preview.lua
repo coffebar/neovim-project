@@ -1,12 +1,30 @@
 local M = {}
 
-local previewers = require("telescope.previewers")
 local config = require("neovim-project.config")
 local history = require("neovim-project.utils.history")
 
 M.initialized = false
 local preview_cache = {}
 local fetched = {}
+local git_available = nil
+
+-- Check if git is available on the system
+local function check_git_available()
+  if git_available ~= nil then
+    return git_available
+  end
+
+  local handle = io.popen("command -v git 2>/dev/null")
+  if handle then
+    local result = handle:read("*a")
+    handle:close()
+    git_available = result ~= ""
+  else
+    git_available = false
+  end
+
+  return git_available
+end
 
 local function expand_path(project_path)
   project_path = vim.fn.expand(project_path)
@@ -15,11 +33,21 @@ local function expand_path(project_path)
   return project_path
 end
 
-local function clear_caches()
-  local current_project = expand_path(history.get_current_project())
-  preview_cache[current_project] = nil
-  fetched[current_project] = nil
+-- Clear preview caches - if project_path is provided, clear only that project's cache
+-- Otherwise clear all caches
+function M.clear_cache(project_path)
+  if project_path then
+    local expanded = expand_path(project_path)
+    preview_cache[expanded] = nil
+    fetched[expanded] = nil
+  else
+    preview_cache = {}
+    fetched = {}
+  end
 end
+
+-- Alias for backward compatibility
+M.clear_all_caches = M.clear_cache
 
 function M.define_preview_highlighting()
   local normal_bg = vim.fn.synIDattr(vim.fn.hlID("Normal"), "bg#")
@@ -68,29 +96,16 @@ local preview_ns_id = vim.api.nvim_create_namespace("neovim_project_preview")
 M.apply_highlights = function(bufnr, highlights)
   vim.api.nvim_buf_clear_namespace(bufnr, preview_ns_id, 0, -1)
   for _, hl_info in ipairs(highlights) do
-    vim.api.nvim_buf_add_highlight(
-      bufnr,
-      preview_ns_id,
-      hl_info.hl,
-      hl_info.line,
-      hl_info.start_col,
-      hl_info.end_col
-    )
+    vim.api.nvim_buf_add_highlight(bufnr, preview_ns_id, hl_info.hl, hl_info.line, hl_info.start_col, hl_info.end_col)
   end
 end
 
 -- Export the expand_path function for reuse
 M.expand_path = expand_path
 
--- Function to clear preview cache
-M.clear_cache = function()
-  preview_cache = {}
-  fetched = {}
-end
-
 M.init = function()
   M.define_preview_highlighting()
-  clear_caches()
+  M.clear_cache(history.get_current_project())
   M.initialized = true
 
   -- autocmd to enforce proper highlighting when changing colorschemes
@@ -105,7 +120,7 @@ M.init = function()
   -- Set up an autocmd to clear current project cache when opening the picker, this ensures that recent changes are visible
   vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
     callback = function()
-      clear_caches()
+      M.clear_cache(history.get_current_project())
     end,
     group = vim.api.nvim_create_augroup("NeovimProjectCacheClear", { clear = true }),
   })
@@ -142,49 +157,67 @@ local icon_provider = get_icon_provider() or function(_, _, _)
   return "", ""
 end
 
--- Custom previewer that shows the contents of the project directory
-M.project_previewer = previewers.new_buffer_previewer({
-  title = "Project Preview",
-  get_buffer_by_name = function(_, entry)
-    return entry.value
-  end,
-  define_preview = function(self, entry)
-    if not M.initialized then
-      M.init()
-    end
+-- Create Telescope previewer only when Telescope is available
+M.create_telescope_previewer = function()
+  local ok, previewers = pcall(require, "telescope.previewers")
+  if not ok then
+    return nil
+  end
 
-    local project_path = entry.value
-
-    -- Process path to make it usable
-    project_path = expand_path(project_path)
-    -- Create a timer for debouncing preview generation
-    if not self._preview_timer then
-      self._preview_timer = vim.loop.new_timer()
-    else
-      -- Cancel any pending preview generation
-      self._preview_timer:stop()
-    end
-
-    local function render_preview()
-      -- Check if the buffer still exists
-      if vim.api.nvim_buf_is_valid(self.state.bufnr) then
-        if not preview_cache[project_path] then
-          preview_cache[project_path] = M.generate_project_preview(project_path)
-        end
-        -- Display the output
-        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, preview_cache[project_path].lines)
-
-        -- Apply highlights
-        M.apply_highlights(self.state.bufnr, preview_cache[project_path].highlights)
+  return previewers.new_buffer_previewer({
+    title = "Project Preview",
+    get_buffer_by_name = function(_, entry)
+      return entry.value
+    end,
+    define_preview = function(self, entry)
+      if not M.initialized then
+        M.init()
       end
-    end
-    if preview_cache[project_path] then
-      render_preview()
-    else
-      self._preview_timer:start(50, 0, vim.schedule_wrap(render_preview))
-    end
-  end,
-})
+
+      local project_path = entry.value
+
+      -- Process path to make it usable
+      project_path = expand_path(project_path)
+      -- Create a timer for debouncing preview generation
+      if not self._preview_timer then
+        self._preview_timer = vim.loop.new_timer()
+      else
+        -- Cancel any pending preview generation
+        self._preview_timer:stop()
+      end
+
+      local function render_preview()
+        -- Check if the buffer still exists
+        if vim.api.nvim_buf_is_valid(self.state.bufnr) then
+          if not preview_cache[project_path] then
+            preview_cache[project_path] = M.generate_project_preview(project_path)
+          end
+          -- Display the output
+          vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, preview_cache[project_path].lines)
+
+          -- Apply highlights
+          M.apply_highlights(self.state.bufnr, preview_cache[project_path].highlights)
+        end
+      end
+      if preview_cache[project_path] then
+        render_preview()
+      else
+        self._preview_timer:start(50, 0, vim.schedule_wrap(render_preview))
+      end
+    end,
+  })
+end
+
+-- For backward compatibility, create the previewer lazily
+M.project_previewer = nil
+
+-- Initialize previewer on first access
+function M.get_telescope_previewer()
+  if not M.project_previewer then
+    M.project_previewer = M.create_telescope_previewer()
+  end
+  return M.project_previewer
+end
 
 -- Get the current git branch and status for a project path
 local function get_git_info(project_path)
@@ -195,6 +228,11 @@ local function get_git_info(project_path)
     behind = 0,
     status = "",
   }
+
+  -- Check if git is available
+  if not check_git_available() then
+    return result
+  end
 
   -- Get branch name
   local is_git_repo =
@@ -217,7 +255,7 @@ local function get_git_info(project_path)
     -- This will fetch once per project during a particular nvim session
     -- This wipes the cache for a project, so it will force a regeneration of the preview when it is viewed again
     if config.options.picker.preview.git_fetch and not fetched[project_path] then
-      local fetch_job_id = vim.fn.jobstart("git fetch --quiet", {
+      local ok, fetch_job_id = pcall(vim.fn.jobstart, "git fetch --quiet", {
         cwd = project_path,
         detach = false,
         on_exit = function(_, _, _)
@@ -226,6 +264,10 @@ local function get_git_info(project_path)
           fetched[project_path] = true
         end,
       })
+      -- If jobstart fails (e.g., git not available), mark as fetched to avoid retry
+      if not ok then
+        fetched[project_path] = true
+      end
     end
 
     -- Get ahead/behind counts

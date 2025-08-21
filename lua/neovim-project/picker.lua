@@ -82,6 +82,8 @@ function M.create_fzf_lua_picker(opts, discover, callback)
         if selected and #selected > 0 then
           local dir = selected[1]:match("\t(.+)$")
           callback(dir)
+          local preview = require("neovim-project.preview")
+          preview.clear_all_caches()
         end
       end,
       ["ctrl-d"] = function(selected)
@@ -172,7 +174,7 @@ function M.create_fzf_lua_picker(opts, discover, callback)
           vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
             "Loading preview for " .. project_name .. "...",
             "",
-            "Please wait..."
+            "Please wait...",
           })
           self:set_preview_buf(bufnr)
 
@@ -189,9 +191,9 @@ function M.create_fzf_lua_picker(opts, discover, callback)
                   "Error generating preview for: " .. project_name,
                   "",
                   "Error details:",
-                  tostring(preview_data or "Unknown error")
+                  tostring(preview_data or "Unknown error"),
                 },
-                highlights = {}
+                highlights = {},
               }
             end
 
@@ -211,19 +213,19 @@ function M.create_fzf_lua_picker(opts, discover, callback)
         end
 
         return ProjectPreviewer
-      end
+      end,
     }
     default_opts.winopts = {
       preview = {
-        hidden = "nohidden"
-      }
+        hidden = "nohidden",
+      },
     }
   else
     -- Hide preview if disabled
     default_opts.winopts = {
       preview = {
-        hidden = "hidden"
-      }
+        hidden = "hidden",
+      },
     }
   end
 
@@ -259,6 +261,8 @@ function M.create_snacks_picker(opts, discover, callback)
     confirm = function(_, item)
       if item then
         callback(Snacks.picker.util.dir(item))
+        local preview = require("neovim-project.preview")
+        preview.clear_all_caches()
       end
     end,
     actions = {
