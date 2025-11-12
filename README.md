@@ -168,6 +168,11 @@ use({
   -- "partial" - follow symlinks before any matching operators (*, ?, [])
   -- "none" or false or nil - do not follow symlinks
   follow_symlinks = "full",
+  -- Enable per-branch session management
+  -- When true, sessions are stored separately for each git branch
+  -- Switching branches will automatically save current session and load branch-specific session
+  -- Requires git to be installed in the system
+  per_branch_sessions = false,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {

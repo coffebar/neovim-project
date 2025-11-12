@@ -8,8 +8,11 @@ local utils = require("session_manager.utils")
 local config = require("neovim-project.config")
 local picker = require("neovim-project.picker")
 local showkeys = require("neovim-project.utils.showkeys")
+local git = require("neovim-project.utils.git")
 
 M.save_project_waiting = false
+M.git_head_watcher = nil
+M.git_debounce_timer = nil
 
 M.setup_autocmds = function()
   local augroup = vim.api.nvim_create_augroup("neovim-project", { clear = true })
@@ -27,6 +30,8 @@ M.setup_autocmds = function()
     group = augroup,
     callback = function()
       history.write_projects_to_history()
+      -- Cleanup git watcher
+      M.stop_git_head_watcher()
     end,
   })
   -- add project to history when open nvim in project's directory
@@ -61,6 +66,7 @@ M.setup_autocmds = function()
   -- 1. Trigger FileType autocmd to attach lsp server to the active buffer
   -- 2. Restore saved state data from the global var in the session file
   -- 3. Workaround for showkeys plugin: reopen the it's buffer
+  -- 4. Restart git HEAD watcher after session load
   vim.api.nvim_create_autocmd({ "User" }, {
     pattern = "SessionLoadPost",
     group = augroup,
@@ -75,6 +81,14 @@ M.setup_autocmds = function()
         path.dir_pretty = path.cwd()
       end
       showkeys.post_load()
+      -- Restart git watcher after session load (session load clears it)
+      if config.options.per_branch_sessions then
+        local cwd = path.cwd()
+        if cwd then
+          local fullpath = vim.fn.expand(cwd)
+          M.setup_git_head_watcher(fullpath)
+        end
+      end
     end,
   })
   -- Exit from session when directory changed from outside
@@ -166,20 +180,47 @@ M.start_session_here = function()
   if not cwd then
     return
   end
+
   local fullpath = vim.fn.expand(cwd)
-  local session = require("session_manager.config").dir_to_session_filename(fullpath)
-  if session:exists() then
+  local session_loaded = false
+  local loaded_from_fallback = false
+
+  -- Session manager will use branch-aware naming if per_branch_sessions is enabled
+  if manager.current_dir_session_exists() then
     manager.load_current_dir_session(false)
-  else
+    session_loaded = true
+  elseif config.options.per_branch_sessions and config.original_dir_to_session_filename then
+    -- Fallback: try loading regular session file if branch-specific doesn't exist
+    -- Use the original (non-branch-aware) function for fallback
+    local regular_session = config.original_dir_to_session_filename(fullpath)
+    if regular_session:exists() then
+      local utils_sm = require("session_manager.utils")
+      utils_sm.load_session(regular_session.filename, false)
+      session_loaded = true
+      loaded_from_fallback = true
+    end
+  end
+
+  if not session_loaded then
     vim.cmd("silent! %bd") -- close all buffers from previous session
     -- create empty session
     manager.save_current_session()
+  elseif loaded_from_fallback then
+    -- We loaded from old session file, save it immediately to new branch-specific filename
+    -- This migrates the session and updates active_session_filename
+    manager.save_current_session()
   end
+
   -- add to history
   if path.dir_pretty ~= nil then
     history.add_session_project(path.dir_pretty)
   else
     history.add_session_project(cwd)
+  end
+
+  -- Setup git HEAD watcher if per-branch sessions enabled
+  if config.options.per_branch_sessions then
+    M.setup_git_head_watcher(fullpath)
   end
 end
 
@@ -287,6 +328,133 @@ M.switch_project = function(dir)
   else
     M.load_session(dir)
   end
+end
+
+--- Handle git branch change - save current session and load branch-specific session
+M.handle_branch_change = function()
+  if not config.options.per_branch_sessions then
+    return
+  end
+
+  local cwd = path.cwd()
+  if not cwd then
+    return
+  end
+
+  -- Expand tilde to full path for git commands
+  local fullpath = vim.fn.expand(cwd)
+
+  local current_branch = git.get_git_branch(fullpath)
+  if not current_branch then
+    return
+  end
+
+  -- Check if we're in any session (not necessarily the current branch's session)
+  if not utils.active_session_filename then
+    return
+  end
+
+  -- Get the expected session filename for current branch
+  local session_config = require("session_manager.config")
+  local expected_session = session_config.dir_to_session_filename(fullpath)
+  local current_session_filename = utils.get_last_session_filename()
+
+  -- If session filename doesn't match, branch changed
+  if current_session_filename and expected_session.filename ~= current_session_filename then
+    vim.notify(
+      "Branch changed to '" .. current_branch .. "'. Switching sessions...",
+      vim.log.levels.INFO,
+      { title = "Neovim Project" }
+    )
+
+    -- Save current buffers to the OLD session file (before branch switch)
+    -- We need to save explicitly to current_session_filename because
+    -- dir_to_session_filename now returns the NEW branch's filename
+    local utils_sm = require("session_manager.utils")
+    utils_sm.save_session(current_session_filename)
+
+    -- Load or create session for new branch
+    if manager.current_dir_session_exists() then
+      manager.load_current_dir_session(false)
+      vim.notify("Loaded session for branch: " .. current_branch, vim.log.levels.INFO, { title = "Neovim Project" })
+    else
+      -- Create new session for this branch
+      vim.cmd("silent! %bd") -- close all buffers
+      manager.save_current_session()
+      vim.notify("Created new session for branch: " .. current_branch, vim.log.levels.INFO, { title = "Neovim Project" })
+    end
+  end
+end
+
+--- Stop git HEAD watcher
+M.stop_git_head_watcher = function()
+  if M.git_debounce_timer then
+    -- Stop and close the timer to prevent pending callbacks
+    if not M.git_debounce_timer:is_closing() then
+      M.git_debounce_timer:stop()
+      M.git_debounce_timer:close()
+    end
+    M.git_debounce_timer = nil
+  end
+  if M.git_head_watcher then
+    -- Stop and close the watcher
+    if not M.git_head_watcher:is_closing() then
+      M.git_head_watcher:stop()
+      M.git_head_watcher:close()
+    end
+    M.git_head_watcher = nil
+  end
+end
+
+--- Setup git HEAD watcher for per-branch session management
+--- @param dir string The directory to watch
+M.setup_git_head_watcher = function(dir)
+  if not config.options.per_branch_sessions then
+    return
+  end
+
+  if not git.is_git_available() then
+    return -- Git not installed
+  end
+
+  -- Stop existing watcher if any (for project switch)
+  M.stop_git_head_watcher()
+
+  local head_file = git.get_git_head_file(dir)
+  if not head_file then
+    return -- Not a git repo or couldn't find HEAD file
+  end
+
+  M.git_head_watcher = vim.loop.new_fs_event()
+  if not M.git_head_watcher then
+    return
+  end
+
+  if not M.git_debounce_timer then
+    M.git_debounce_timer = vim.loop.new_timer()
+  end
+
+  M.git_head_watcher:start(head_file, { recursive = false }, function(err, filename, events)
+    if err then
+      -- Watcher error, try to restart it
+      vim.schedule(function()
+        M.setup_git_head_watcher(dir)
+      end)
+      return
+    end
+
+    -- React to both change and rename events (git can rename HEAD during branch switch)
+    if events.change or events.rename then
+      M.git_debounce_timer:stop()
+      M.git_debounce_timer:start(
+        500,
+        0,
+        vim.schedule_wrap(function()
+          M.handle_branch_change()
+        end)
+      )
+    end
+  end)
 end
 
 M.init = function()

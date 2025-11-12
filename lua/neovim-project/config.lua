@@ -32,6 +32,10 @@ M.defaults = {
   -- "partial" - follow symlinks before any matching operators (*, ?, [])
   -- "none" or false or nil - do not follow symlinks
   follow_symlinks = "full",
+  -- Enable per-branch session management
+  -- When true, sessions are stored separately for each git branch
+  -- Switching branches will automatically save current session and load branch-specific session
+  per_branch_sessions = false,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {
@@ -112,6 +116,52 @@ M.setup = function(options)
   end
 
   M.options.session_manager_opts.sessions_dir = path.sessionspath
+
+  -- Save original dir_to_session_filename function BEFORE setup
+  local session_manager_config = require("session_manager.config")
+  local original_dir_to_session_filename = session_manager_config.dir_to_session_filename
+  M.original_dir_to_session_filename = original_dir_to_session_filename
+
+  -- Override dir_to_session_filename if per_branch_sessions is enabled
+  -- Pass it as an option to setup() so it gets included in the metatable __index
+  if M.options.per_branch_sessions then
+    local git = require("neovim-project.utils.git")
+
+    -- Override dir_to_session_filename to add branch suffix
+    M.options.session_manager_opts.dir_to_session_filename = function(dir)
+      -- Expand tilde in path for git commands
+      local expanded_dir = vim.fn.expand(dir)
+      local branch = git.get_git_branch(expanded_dir)
+      if branch then
+        -- Append branch to directory path with special separator
+        local sanitized_branch = git.sanitize_branch_name(branch)
+        local dir_with_branch = dir .. "@@branch@@" .. sanitized_branch
+        -- Construct the path manually to avoid recursion
+        local Path = require("plenary.path")
+        local path_replacer = "__"
+        local colon_replacer = "++"
+        local filename = dir_with_branch:gsub(":", colon_replacer)
+        filename = filename:gsub(Path.path.sep, path_replacer)
+        return Path:new(session_manager_config.sessions_dir):joinpath(filename)
+      else
+        -- Not a git repo or detached HEAD - use regular session naming
+        return original_dir_to_session_filename(dir)
+      end
+    end
+
+    -- Override session_filename_to_dir to strip branch suffix
+    local original_session_filename_to_dir = session_manager_config.session_filename_to_dir
+    M.options.session_manager_opts.session_filename_to_dir = function(filename)
+      -- Strip the @@branch@@ suffix before converting to dir
+      local basename = filename:match("([^/]+)$") or filename
+      local dir_part = basename:gsub("@@branch@@[^/]*$", "")
+
+      -- Reconstruct filename without branch suffix for conversion
+      local dir_name = filename:gsub(basename .. "$", dir_part)
+
+      return original_session_filename_to_dir(dir_name)
+    end
+  end
 
   -- Session Manager setup
   require("session_manager").setup(M.options.session_manager_opts)
