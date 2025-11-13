@@ -85,11 +85,14 @@ M.setup_autocmds = function()
       showkeys.post_load()
       -- Restart git watcher after session load (session load clears it)
       if config.options.per_branch_sessions then
-        local cwd = path.cwd()
-        if cwd then
-          local fullpath = vim.fn.expand(cwd)
-          M.setup_git_head_watcher(fullpath)
-        end
+        -- Use vim.schedule to ensure cwd is updated after session finishes loading
+        vim.schedule(function()
+          local cwd = path.cwd()
+          if cwd then
+            local fullpath = vim.fn.expand(cwd)
+            M.setup_git_head_watcher(fullpath)
+          end
+        end)
       end
     end,
   })
@@ -207,6 +210,9 @@ M.load_session = function(dir)
       else
         history.add_session_project(current_cwd)
       end
+      -- Write history to file immediately
+      debug_log.log("Writing history to file", "load_session")
+      history.write_projects_to_history()
     else
       debug_log.log("Not in session, starting session here", "load_session")
       M.start_session_here()
@@ -265,19 +271,10 @@ M.start_session_here = function()
       utils_sm.active_session_filename = session_file.filename
       debug_log.log("Set active_session_filename to: " .. session_file.filename, "start_session_here")
 
-      -- Load the session directly to ensure we load the correct one
-      debug_log.log("Calling load_session with: " .. tostring(session_file.filename), "start_session_here")
+      -- Load the session using session_manager
+      debug_log.log("Loading session: " .. session_file.filename, "start_session_here")
       utils_sm.load_session(session_file.filename, false)
       session_loaded = true
-
-      -- Log what was actually loaded
-      local loaded_session = utils_sm.get_last_session_filename()
-      debug_log.log("Actually loaded session: " .. tostring(loaded_session), "start_session_here")
-
-      -- Check if they match
-      if loaded_session ~= session_file.filename then
-        debug_log.log("ERROR: Session mismatch! Expected != Actual", "start_session_here")
-      end
     end
   elseif config.options.per_branch_sessions and config.original_dir_to_session_filename then
     debug_log.log("Checking fallback session", "start_session_here")
@@ -316,6 +313,13 @@ M.start_session_here = function()
   else
     debug_log.log("Adding to history: " .. cwd, "start_session_here")
     history.add_session_project(cwd)
+  end
+
+  -- Write history to file immediately after project switch
+  -- This ensures history is persisted even if Neovim crashes
+  if M.switching_project then
+    debug_log.log("Writing history to file after project switch", "start_session_here")
+    history.write_projects_to_history()
   end
 
   -- Setup git HEAD watcher if per-branch sessions enabled
@@ -532,15 +536,23 @@ M.handle_branch_change = function()
 
     -- Load or create session for new branch
     debug_log.log("Checking if new branch session exists", "handle_branch_change")
-    local new_session_exists = manager.current_dir_session_exists()
+
+    -- Check directly if the expected session file exists
+    -- Don't rely on manager.current_dir_session_exists() as it might call
+    -- git branch detection before git has fully updated the working tree
+    local new_session_exists = expected_session:exists()
     debug_log.log("New session exists: " .. tostring(new_session_exists), "handle_branch_change")
 
     if new_session_exists then
       debug_log.log("Loading existing session for branch: " .. current_branch, "handle_branch_change")
-      manager.load_current_dir_session(false)
+      -- Load the session directly using the expected filename
+      utils.active_session_filename = expected_session.filename
+      utils.load_session(expected_session.filename, false)
     else
       debug_log.log("Creating new session for branch: " .. current_branch, "handle_branch_change")
-      -- Create new session for this branch
+      -- Close all buffers and create new session for this branch
+      vim.cmd("silent! %bd")
+      utils.active_session_filename = expected_session.filename
       manager.save_current_session()
     end
     debug_log.log("Branch change handling complete", "handle_branch_change")

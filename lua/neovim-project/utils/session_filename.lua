@@ -87,13 +87,8 @@ end
 --- @return function The function to use as session_filename_to_dir
 M.create_session_filename_to_dir = function()
   return function(filename)
-    -- Strip the @@branch@@ suffix before converting to dir
-    local basename = filename:match("([^/]+)$") or filename
-    local dir_part = basename:gsub("@@branch@@[^/]*$", "")
-
-    -- Reconstruct filename without branch suffix for conversion
-    local dir_name = filename:gsub(basename .. "$", dir_part)
-
+    -- Strip the @@branch@@<branch_name> suffix from the full path
+    local dir_name = filename:gsub("@@branch@@[^/]*$", "")
     return M.original_session_filename_to_dir(dir_name)
   end
 end
