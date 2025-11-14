@@ -174,6 +174,10 @@ use({
   -- Switching branches will automatically save current session and load branch-specific session
   -- Requires git to be installed in the system
   per_branch_sessions = false,
+  -- Enable debug logging
+  -- When true, logs debug information to ~/.local/share/nvim/neovim-project-debug.log
+  -- Useful for troubleshooting plugin behavior
+  debug_logging = false,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {

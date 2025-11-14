@@ -1,4 +1,4 @@
-*neovim-project.txt*             For              Last change: 2025 November 12
+*neovim-project.txt*             For              Last change: 2025 November 14
 
 ==============================================================================
 Table of Contents                           *neovim-project-table-of-contents*
@@ -27,6 +27,7 @@ which is needed to store all open tabs and buffers for each project.
 - ✅ Switch from project to project in a second.
 - ✅ Sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
 - ✅ Find all your projects by glob patterns defined in config.
+- ✅ Per-branch sessions (opt-in): separate session for each git branch with automatic switching.
 - ✅ Autosave **neo-tree.nvim** expanded directories and buffers order in **barbar.nvim**.
 
 🙏 **Neovim project manager** plugin is heavily inspired by project.vim
@@ -186,6 +187,10 @@ DEFAULT OPTIONS: ~
       -- Switching branches will automatically save current session and load branch-specific session
       -- Requires git to be installed in the system
       per_branch_sessions = false,
+      -- Enable debug logging
+      -- When true, logs debug information to ~/.local/share/nvim/neovim-project-debug.log
+      -- Useful for troubleshooting plugin behavior
+      debug_logging = false,
 
       -- Overwrite some of Session Manager options
       session_manager_opts = {
