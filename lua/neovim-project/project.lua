@@ -106,16 +106,11 @@ M.setup_autocmds = function()
       end
       -- Ignore directory changes initiated by plugin's project switching
       if M.switching_project then
-        debug_log.log("Ignoring directory change (switching_project=true)", "DirChangedPre")
         return
       end
-      debug_log.log(
-        "Dir change detected. path.dir_pretty=" .. tostring(path.dir_pretty) .. " event.file=" .. tostring(event.file),
-        "DirChangedPre"
-      )
       if path.dir_pretty ~= path.short_path(event.file) then
         -- directory changed from outside
-        debug_log.log("Exiting from session: " .. path.dir_pretty, "DirChangedPre")
+        debug_log.log("Exiting session due to external directory change: " .. path.dir_pretty, "DirChangedPre")
         history.write_projects_to_history()
         local dir = path.dir_pretty
         vim.notify("CWD Changed! Exit from session " .. dir, vim.log.levels.INFO, { title = "Neovim Project" })
@@ -178,32 +173,26 @@ M.switch_after_save_session = function(dir)
 end
 
 M.load_session = function(dir)
-  debug_log.log("Called with dir: " .. tostring(dir), "load_session")
-
   if not dir then
-    debug_log.log("dir is nil, returning", "load_session")
+    debug_log.log("load_session called with nil dir", "load_session")
     return
   end
 
+  debug_log.log("Loading session for: " .. dir, "load_session")
+
   -- Set flag to prevent DirChangedPre from interfering
   M.switching_project = true
-  debug_log.log("Set switching_project = true", "load_session")
 
   local current_cwd = path.cwd()
-  debug_log.log("Current cwd: " .. tostring(current_cwd), "load_session")
-  debug_log.log("Target dir: " .. tostring(dir), "load_session")
-  debug_log.log("Paths equal: " .. tostring(current_cwd == dir), "load_session")
 
   if current_cwd ~= dir then
-    debug_log.log("Changing directory to: " .. dir, "load_session")
     path.dir_pretty = path.short_path(dir)
     vim.api.nvim_set_current_dir(dir)
     M.start_session_here()
   else
-    debug_log.log("Already in target directory", "load_session")
     -- Check if we're already in a session for this directory
     if M.in_session() then
-      debug_log.log("Already in session for this directory, doing nothing", "load_session")
+      debug_log.log("Already in session, updating history", "load_session")
       -- Just ensure history is updated
       if path.dir_pretty ~= nil then
         history.add_session_project(path.dir_pretty)
@@ -211,10 +200,8 @@ M.load_session = function(dir)
         history.add_session_project(current_cwd)
       end
       -- Write history to file immediately
-      debug_log.log("Writing history to file", "load_session")
       history.write_projects_to_history()
     else
-      debug_log.log("Not in session, starting session here", "load_session")
       M.start_session_here()
     end
   end
@@ -222,54 +209,39 @@ M.load_session = function(dir)
   -- Clear flag after session is loaded
   vim.schedule(function()
     M.switching_project = false
-    debug_log.log("Set switching_project = false", "load_session")
   end)
 end
 
 M.start_session_here = function()
-  debug_log.log("Called", "start_session_here")
-
   -- load session or create new one if not exists
   local cwd = path.cwd()
-  debug_log.log("cwd: " .. tostring(cwd), "start_session_here")
 
   if not cwd then
-    debug_log.log("cwd is nil, returning", "start_session_here")
+    debug_log.log("start_session_here called with nil cwd", "start_session_here")
     return
   end
 
   local fullpath = vim.fn.expand(cwd)
-  debug_log.log("fullpath: " .. tostring(fullpath), "start_session_here")
 
   local session_loaded = false
   local loaded_from_fallback = false
 
   -- Session manager will use branch-aware naming if per_branch_sessions is enabled
   local session_exists = manager.current_dir_session_exists()
-  debug_log.log("current_dir_session_exists: " .. tostring(session_exists), "start_session_here")
 
   if session_exists then
     -- Get the session filename that should be loaded
     local session_config = require("session_manager.config")
     local session_file = session_config.dir_to_session_filename(fullpath)
-    debug_log.log(
-      "Expected session file: " .. tostring(session_file and session_file.filename or "unknown"),
-      "start_session_here"
-    )
 
     -- Check if the file actually exists
     if not session_file:exists() then
-      debug_log.log("Session file doesn't exist, will try fallback", "start_session_here")
+      debug_log.log("Session file missing, trying fallback", "start_session_here")
       session_exists = false
     else
-      -- Check what session_manager thinks the current dir session is
-      local utils_sm = require("session_manager.utils")
-      local before_load = utils_sm.get_last_session_filename()
-      debug_log.log("Session before load: " .. tostring(before_load), "start_session_here")
-
       -- Set the active session filename BEFORE loading to prevent session_manager from overriding
+      local utils_sm = require("session_manager.utils")
       utils_sm.active_session_filename = session_file.filename
-      debug_log.log("Set active_session_filename to: " .. session_file.filename, "start_session_here")
 
       -- Load the session using session_manager
       debug_log.log("Loading session: " .. session_file.filename, "start_session_here")
@@ -277,30 +249,25 @@ M.start_session_here = function()
       session_loaded = true
     end
   elseif config.options.per_branch_sessions and config.original_dir_to_session_filename then
-    debug_log.log("Checking fallback session", "start_session_here")
     -- Fallback: try loading regular session file if branch-specific doesn't exist
     -- Use the original (non-branch-aware) function for fallback
     local regular_session = config.original_dir_to_session_filename(fullpath)
-    debug_log.log("regular_session path: " .. tostring(regular_session.filename), "start_session_here")
 
     if regular_session:exists() then
-      debug_log.log("Loading fallback session", "start_session_here")
+      debug_log.log("Loading fallback session and migrating to branch-specific", "start_session_here")
       local utils_sm = require("session_manager.utils")
       utils_sm.load_session(regular_session.filename, false)
       session_loaded = true
       loaded_from_fallback = true
-    else
-      debug_log.log("Fallback session does not exist", "start_session_here")
     end
   end
 
   if not session_loaded then
-    debug_log.log("No session loaded, creating empty session", "start_session_here")
+    debug_log.log("Creating new session", "start_session_here")
     vim.cmd("silent! %bd") -- close all buffers from previous session
     -- create empty session
     manager.save_current_session()
   elseif loaded_from_fallback then
-    debug_log.log("Loaded from fallback, migrating to branch-specific", "start_session_here")
     -- We loaded from old session file, save it immediately to new branch-specific filename
     -- This migrates the session and updates active_session_filename
     manager.save_current_session()
@@ -308,17 +275,14 @@ M.start_session_here = function()
 
   -- add to history
   if path.dir_pretty ~= nil then
-    debug_log.log("Adding to history: " .. path.dir_pretty, "start_session_here")
     history.add_session_project(path.dir_pretty)
   else
-    debug_log.log("Adding to history: " .. cwd, "start_session_here")
     history.add_session_project(cwd)
   end
 
   -- Write history to file immediately after project switch
   -- This ensures history is persisted even if Neovim crashes
   if M.switching_project then
-    debug_log.log("Writing history to file after project switch", "start_session_here")
     history.write_projects_to_history()
   end
 
@@ -326,8 +290,6 @@ M.start_session_here = function()
   if config.options.per_branch_sessions then
     M.setup_git_head_watcher(fullpath)
   end
-
-  debug_log.log("Finished", "start_session_here")
 end
 
 M.create_commands = function()
@@ -426,22 +388,10 @@ M.create_commands = function()
       return { "default", "history", "alphabetical_name", "alphabetical_path" }
     end,
   })
-
-  -- Debug commands
-  vim.api.nvim_create_user_command("NeovimProjectDebugLog", function()
-    vim.cmd("edit " .. debug_log.get_path())
-  end, {})
-
-  vim.api.nvim_create_user_command("NeovimProjectDebugClear", function()
-    debug_log.clear()
-    vim.notify("Debug log cleared", vim.log.levels.INFO, { title = "Neovim Project" })
-  end, {})
 end
 
 M.switch_project = function(dir)
-  debug_log.log("Called with dir: " .. tostring(dir), "switch_project")
-  debug_log.log("Currently in session: " .. tostring(M.in_session()), "switch_project")
-  debug_log.log("Current cwd: " .. tostring(path.cwd()), "switch_project")
+  debug_log.log("Switching to project: " .. tostring(dir), "switch_project")
 
   if M.in_session() then
     M.switch_after_save_session(dir)
@@ -452,38 +402,28 @@ end
 
 --- Handle git branch change - save current session and load branch-specific session
 M.handle_branch_change = function()
-  debug_log.log("Called", "handle_branch_change")
-
   if not config.options.per_branch_sessions then
-    debug_log.log("per_branch_sessions disabled, returning", "handle_branch_change")
     return
   end
 
   local cwd = path.cwd()
-  debug_log.log("cwd: " .. tostring(cwd), "handle_branch_change")
 
   if not cwd then
-    debug_log.log("cwd is nil, returning", "handle_branch_change")
+    debug_log.log("handle_branch_change: cwd is nil", "handle_branch_change")
     return
   end
 
   -- Expand tilde to full path for git commands
   local fullpath = vim.fn.expand(cwd)
-  debug_log.log("fullpath: " .. fullpath, "handle_branch_change")
 
   local current_branch = git.get_git_branch(fullpath)
-  debug_log.log("current_branch: " .. tostring(current_branch), "handle_branch_change")
 
   if not current_branch then
-    debug_log.log("No branch detected, returning", "handle_branch_change")
     return
   end
 
   -- Check if we're in any session (not necessarily the current branch's session)
-  debug_log.log("active_session_filename: " .. tostring(utils.active_session_filename), "handle_branch_change")
-
   if not utils.active_session_filename then
-    debug_log.log("No active session, returning", "handle_branch_change")
     return
   end
 
@@ -495,15 +435,9 @@ M.handle_branch_change = function()
   -- because get_last_session_filename() might compute based on current directory/branch
   local current_session_filename = utils.active_session_filename
 
-  debug_log.log("expected_session: " .. tostring(expected_session.filename), "handle_branch_change")
-  debug_log.log(
-    "current_session_filename (from active_session_filename): " .. tostring(current_session_filename),
-    "handle_branch_change"
-  )
-
   -- If session filename doesn't match, branch changed
   if current_session_filename and expected_session.filename ~= current_session_filename then
-    debug_log.log("Branch change detected!", "handle_branch_change")
+    debug_log.log("Branch switched to: " .. current_branch, "handle_branch_change")
     vim.notify(
       "Branch changed to '" .. current_branch .. "'. Switching sessions...",
       vim.log.levels.INFO,
@@ -515,36 +449,28 @@ M.handle_branch_change = function()
     -- dir_to_session_filename now returns the NEW branch's filename
     local session_filename_module = require("neovim-project.utils.session_filename")
     local Path = require("plenary.path")
-    debug_log.log("Setting forced filename to: " .. current_session_filename, "handle_branch_change")
     session_filename_module.set_force_session_filename(Path:new(current_session_filename))
 
     -- Save current session and wait for completion
     M.save_project_waiting = true
-    debug_log.log("Saving current session to old branch file", "handle_branch_change")
     manager.save_current_session()
 
     -- Clear the forced filename after save
     session_filename_module.clear_force_session_filename()
-    debug_log.log("Cleared forced filename", "handle_branch_change")
 
     -- Wait for SessionSavePost autocmd or timeout 2 sec
-    debug_log.log("Waiting for save to complete...", "handle_branch_change")
     vim.wait(2000, function()
       return not M.save_project_waiting
     end, 1)
-    debug_log.log("Wait finished. save_project_waiting=" .. tostring(M.save_project_waiting), "handle_branch_change")
 
     -- Load or create session for new branch
-    debug_log.log("Checking if new branch session exists", "handle_branch_change")
-
     -- Check directly if the expected session file exists
     -- Don't rely on manager.current_dir_session_exists() as it might call
     -- git branch detection before git has fully updated the working tree
     local new_session_exists = expected_session:exists()
-    debug_log.log("New session exists: " .. tostring(new_session_exists), "handle_branch_change")
 
     if new_session_exists then
-      debug_log.log("Loading existing session for branch: " .. current_branch, "handle_branch_change")
+      debug_log.log("Loading session for branch: " .. current_branch, "handle_branch_change")
       -- Load the session directly using the expected filename
       utils.active_session_filename = expected_session.filename
       utils.load_session(expected_session.filename, false)
@@ -555,7 +481,6 @@ M.handle_branch_change = function()
       utils.active_session_filename = expected_session.filename
       manager.save_current_session()
     end
-    debug_log.log("Branch change handling complete", "handle_branch_change")
   end
 end
 
@@ -582,33 +507,26 @@ end
 --- Setup git HEAD watcher for per-branch session management
 --- @param dir string The directory to watch
 M.setup_git_head_watcher = function(dir)
-  debug_log.log("Called with dir: " .. tostring(dir), "setup_git_head_watcher")
-
   if not config.options.per_branch_sessions then
-    debug_log.log("per_branch_sessions disabled, returning", "setup_git_head_watcher")
     return
   end
 
   if not git.is_git_available() then
-    debug_log.log("Git not available, returning", "setup_git_head_watcher")
     return -- Git not installed
   end
 
   -- Stop existing watcher if any (for project switch)
   M.stop_git_head_watcher()
-  debug_log.log("Stopped existing watcher", "setup_git_head_watcher")
 
   local head_file = git.get_git_head_file(dir)
-  debug_log.log("HEAD file: " .. tostring(head_file), "setup_git_head_watcher")
 
   if not head_file then
-    debug_log.log("No HEAD file found, returning", "setup_git_head_watcher")
     return -- Not a git repo or couldn't find HEAD file
   end
 
   M.git_head_watcher = vim.loop.new_fs_event()
   if not M.git_head_watcher then
-    debug_log.log("Failed to create fs_event watcher", "setup_git_head_watcher")
+    debug_log.log("Failed to create git HEAD watcher", "setup_git_head_watcher")
     return
   end
 
@@ -616,20 +534,12 @@ M.setup_git_head_watcher = function(dir)
     M.git_debounce_timer = vim.loop.new_timer()
   end
 
-  debug_log.log("Starting watcher on: " .. head_file, "setup_git_head_watcher")
+  debug_log.log("Watching git HEAD: " .. head_file, "setup_git_head_watcher")
 
   M.git_head_watcher:start(head_file, { recursive = false }, function(err, filename, events)
-    debug_log.log(
-      "Watcher triggered! err="
-        .. tostring(err)
-        .. " filename="
-        .. tostring(filename)
-        .. " events="
-        .. vim.inspect(events),
-      "git_head_watcher"
-    )
     if err then
       -- Watcher error, try to restart it
+      debug_log.log("Git watcher error, restarting: " .. tostring(err), "git_head_watcher")
       vim.schedule(function()
         M.setup_git_head_watcher(dir)
       end)

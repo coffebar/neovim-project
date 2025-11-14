@@ -47,19 +47,14 @@ end
 --- @return function The function to use as dir_to_session_filename
 M.create_dir_to_session_filename = function()
   return function(dir)
-    local debug_log = require("neovim-project.debug_log")
-    debug_log.log("Called with dir: " .. tostring(dir), "dir_to_session_filename")
-
     -- If we're forcing a specific session filename (during branch switch save), use it
     if M.force_session_filename then
-      debug_log.log("Using forced filename: " .. tostring(M.force_session_filename.filename), "dir_to_session_filename")
       return M.force_session_filename
     end
 
     local git = require("neovim-project.utils.git")
     local expanded_dir = vim.fn.expand(dir)
     local branch = git.get_git_branch(expanded_dir)
-    debug_log.log("Branch for " .. expanded_dir .. ": " .. tostring(branch), "dir_to_session_filename")
 
     if branch then
       -- Append branch to directory path with special separator
@@ -68,15 +63,12 @@ M.create_dir_to_session_filename = function()
       -- Use original function with modified path
       local session_filename = M.original_dir_to_session_filename(dir_with_branch)
 
-      debug_log.log("Returning branch-aware filename: " .. tostring(session_filename.filename), "dir_to_session_filename")
-
       -- Update cache with current branch and session filename
       M.update_branch_cache(dir, branch, session_filename)
 
       return session_filename
     else
       -- Not a git repo or detached HEAD - use regular session naming
-      debug_log.log("No branch, returning regular filename", "dir_to_session_filename")
       M.update_branch_cache(dir, nil, nil)
       return M.original_dir_to_session_filename(dir)
     end
