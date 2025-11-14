@@ -6,6 +6,7 @@
 - ✅ Switch from project to project in a second.
 - ✅ Sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
 - ✅ Find all your projects by glob patterns defined in config.
+- ✅ Per-branch sessions (opt-in): separate session for each git branch with automatic switching.
 - ✅ Autosave **neo-tree.nvim** expanded directories and buffers order in **barbar.nvim**.
 - ✅ Choose your favorite picker.
 
