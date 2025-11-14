@@ -32,6 +32,14 @@ M.defaults = {
   -- "partial" - follow symlinks before any matching operators (*, ?, [])
   -- "none" or false or nil - do not follow symlinks
   follow_symlinks = "full",
+  -- Enable per-branch session management
+  -- When true, sessions are stored separately for each git branch
+  -- Switching branches will automatically save current session and load branch-specific session
+  per_branch_sessions = false,
+  -- Enable debug logging
+  -- When true, logs debug information to ~/.local/share/nvim/neovim-project-debug.log
+  -- Useful for troubleshooting plugin behavior
+  debug_logging = false,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {
@@ -112,6 +120,26 @@ M.setup = function(options)
   end
 
   M.options.session_manager_opts.sessions_dir = path.sessionspath
+
+  -- Setup session filename management with branch awareness if enabled
+  local session_manager_config = require("session_manager.config")
+
+  if M.options.per_branch_sessions then
+    local session_filename = require("neovim-project.utils.session_filename")
+
+    -- Initialize the session filename module with original functions
+    session_filename.init(session_manager_config)
+
+    -- Store reference to original function for fallback loading
+    M.original_dir_to_session_filename = session_filename.original_dir_to_session_filename
+
+    -- Override session manager functions with branch-aware versions
+    M.options.session_manager_opts.dir_to_session_filename = session_filename.create_dir_to_session_filename()
+    M.options.session_manager_opts.session_filename_to_dir = session_filename.create_session_filename_to_dir()
+  else
+    -- Save original function for non-branch-aware mode
+    M.original_dir_to_session_filename = session_manager_config.dir_to_session_filename
+  end
 
   -- Session Manager setup
   require("session_manager").setup(M.options.session_manager_opts)

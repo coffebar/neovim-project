@@ -6,6 +6,7 @@
 - ✅ Switch from project to project in a second.
 - ✅ Sessions and history can be synced across your devices (rsync, Syncthing, Nextcloud, Dropbox, etc.)
 - ✅ Find all your projects by glob patterns defined in config.
+- ✅ Per-branch sessions (opt-in): separate session for each git branch with automatic switching.
 - ✅ Autosave **neo-tree.nvim** expanded directories and buffers order in **barbar.nvim**.
 - ✅ Choose your favorite picker.
 
@@ -168,6 +169,15 @@ use({
   -- "partial" - follow symlinks before any matching operators (*, ?, [])
   -- "none" or false or nil - do not follow symlinks
   follow_symlinks = "full",
+  -- Enable per-branch session management
+  -- When true, sessions are stored separately for each git branch
+  -- Switching branches will automatically save current session and load branch-specific session
+  -- Requires git to be installed in the system
+  per_branch_sessions = false,
+  -- Enable debug logging
+  -- When true, logs debug information to ~/.local/share/nvim/neovim-project-debug.log
+  -- Useful for troubleshooting plugin behavior
+  debug_logging = false,
 
   -- Overwrite some of Session Manager options
   session_manager_opts = {
