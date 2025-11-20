@@ -472,8 +472,8 @@ M.handle_branch_change = function()
     if new_session_exists then
       debug_log.log("Loading session for branch: " .. current_branch, "handle_branch_change")
       -- Load the session directly using the expected filename
-      utils.active_session_filename = expected_session.filename
       utils.load_session(expected_session.filename, false)
+      utils.active_session_filename = expected_session.filename
     else
       debug_log.log("Creating new session for branch: " .. current_branch, "handle_branch_change")
       -- Close all buffers and create new session for this branch
@@ -554,6 +554,12 @@ M.setup_git_head_watcher = function(dir)
         0,
         vim.schedule_wrap(function()
           M.handle_branch_change()
+
+          -- Restart watcher after handling the change
+          -- fs_event watchers can stop after rename events
+          vim.schedule(function()
+            M.setup_git_head_watcher(dir)
+          end)
         end)
       )
     end
