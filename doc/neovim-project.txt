@@ -160,6 +160,11 @@ DEFAULT OPTIONS: ~
         "~/.config/*",
         "~/work/*",
       },
+      -- Ignore directories
+      -- Useful if you have something like "~/projects/*.worktrees/*" in
+      -- projects and want to filter out the parent directory with
+      -- ignore_projects = { "~/projects/*.worktrees/" }
+      ignore_projects = {}
       -- Path to store history and sessions
       datapath = vim.fn.stdpath("data"), -- ~/.local/share/nvim/
       -- Load the most recent session on startup if not in the project directory
