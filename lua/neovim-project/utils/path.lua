@@ -141,17 +141,34 @@ M.get_all_projects = function(patterns)
   if patterns == nil then
     patterns = require("neovim-project.config").options.projects
   end
+
+  local ignore_patterns = require("neovim-project.config").options.ignore_projects or {}
+  local ignore_set = {}
+  for _, ignore_pattern in ipairs(ignore_patterns) do
+    local ignore_tbl = vim.fn.glob(ignore_pattern, true, true, true)
+    for _, ignore_path in ipairs(ignore_tbl) do
+      if vim.fn.isdirectory(ignore_path) == 1 then
+        ignore_set[M.resolve(ignore_path)] = true
+      end
+    end
+  end
+
   for _, pattern in ipairs(patterns) do
     local tbl = vim.fn.glob(pattern, true, true, true)
     for _, path in ipairs(tbl) do
       if vim.fn.isdirectory(path) == 1 then
-        local short = M.short_path(path)
-        if not vim.tbl_contains(projects, short) then
-          table.insert(projects, short)
+        local resolved = M.resolve(path)
+        local is_ignored = ignore_set[resolved] == true
+        if not is_ignored then
+          local short = M.short_path(path)
+          if not vim.tbl_contains(projects, short) then
+            table.insert(projects, short)
+          end
         end
       end
     end
   end
+
   return projects
 end
 
