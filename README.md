@@ -51,7 +51,7 @@ You can install the plugin using your preferred package manager.
   dependencies = {
     { "nvim-lua/plenary.nvim" },
     -- optional picker
-    { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
+    { "nvim-telescope/telescope.nvim" },
     -- optional picker
     { "ibhagwan/fzf-lua" },
     -- optional picker
@@ -87,7 +87,7 @@ use({
   requires = {
     { "nvim-lua/plenary.nvim" },
     -- optional picker
-    { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
+    { "nvim-telescope/telescope.nvim" },
     -- optional picker
     { "ibhagwan/fzf-lua" },
     -- optional picker
@@ -121,7 +121,7 @@ use({
   requires = {
     { "nvim-lua/plenary.nvim" },
     -- optional picker
-    { "nvim-telescope/telescope.nvim", tag = "0.1.4" },
+    { "nvim-telescope/telescope.nvim" },
     -- optional picker
     { "ibhagwan/fzf-lua" },
     -- optional picker
